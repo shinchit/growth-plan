@@ -29,3 +29,21 @@ test('Cognito User Pool is created', () => {
 test('Cognito User Pool Client is created', () => {
   template.resourceCountIs('AWS::Cognito::UserPoolClient', 1);
 });
+
+test('API Gateway is created', () => {
+  template.resourceCountIs('AWS::ApiGateway::RestApi', 1);
+});
+
+test('all Lambda functions exist', () => {
+  template.resourceCountIs('AWS::Lambda::Function', 6);
+});
+
+test('two EventBridge rules are created', () => {
+  template.resourceCountIs('AWS::Events::Rule', 2);
+});
+
+test('CFN outputs include UserPoolId, UserPoolClientId, ApiUrl', () => {
+  template.hasOutput('UserPoolId', {});
+  template.hasOutput('UserPoolClientId', {});
+  template.hasOutput('ApiUrl', {});
+});
