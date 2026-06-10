@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>デイリーチェックイン</title>
+<script src="https://unpkg.com/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
+<style>
+:root {
+  --bg: #ffffff; --bg2: #f5f4f0; --bg3: #eeecea;
+  --text: #1a1a18; --text2: #5a5a56; --text3: #8c8b84;
+  --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+  --purple: #534AB7; --purple-l: #EEEDFE; --purple-d: #3C3489;
+  --teal: #1D9E75; --teal-l: #E1F5EE; --coral: #D85A30;
+  --amber: #BA7517; --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+    --text: #e8e6df; --text2: #a8a69e; --text3: #6e6c66;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+    --purple-l: #26215C; --purple-d: #CECBF6;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+       background: var(--bg); color: var(--text); line-height: 1.6; font-size: 15px; }
+.container { max-width: 600px; margin: 0 auto; padding: 0 0 4rem; }
+#login-view { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; }
+.login-box { width: 100%; max-width: 360px; }
+.login-box h1 { font-size: 20px; font-weight: 600; margin-bottom: 1.5rem; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+.field input { width: 100%; border: 1px solid var(--border2); border-radius: 7px;
+               padding: 10px 12px; font-size: 14px; background: var(--bg2); color: var(--text); }
+.btn-primary { width: 100%; background: var(--purple); color: #fff; border: none;
+               border-radius: 7px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.error-msg { font-size: 12px; color: var(--coral); margin-top: 8px; }
+
+.app-header { background: var(--purple); color: #fff; padding: 14px 16px;
+              display: flex; justify-content: space-between; align-items: center; }
+.app-header-left h1 { font-size: 15px; font-weight: 600; }
+.app-header-left .date-nav { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.streak-badge { background: rgba(255,255,255,0.2); border-radius: 12px;
+                padding: 3px 10px; font-size: 12px; }
+
+.tab-bar { display: flex; border-bottom: 1px solid var(--border); background: var(--bg);
+           padding: 0 8px; overflow-x: auto; }
+.tab-btn { padding: 10px 12px; font-size: 12px; border: none; background: transparent;
+           color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent;
+           white-space: nowrap; transition: color .15s; }
+.tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); font-weight: 600; }
+.tab-panel { display: none; padding: 16px; }
+.tab-panel.active { display: block; }
+
+.section-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                 letter-spacing: .05em; color: var(--text3); margin-bottom: 10px; }
+.habit-row { display: flex; align-items: center; gap: 10px; background: var(--bg);
+             border: 1px solid var(--border); border-radius: 7px; padding: 10px 12px;
+             margin-bottom: 6px; cursor: pointer; }
+.habit-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--purple); flex-shrink: 0; }
+.habit-row .habit-name { font-size: 13px; flex: 1; }
+.habit-row .habit-freq { font-size: 11px; color: var(--text3); }
+textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; padding: 10px;
+           font-size: 13px; background: var(--bg2); color: var(--text); resize: none;
+           font-family: inherit; }
+.field-label { font-size: 12px; font-weight: 600; margin-bottom: 5px; margin-top: 14px; }
+.btn-save { width: 100%; margin-top: 16px; background: var(--purple); color: #fff;
+            border: none; border-radius: 7px; padding: 11px; font-size: 13px;
+            font-weight: 600; cursor: pointer; }
+.save-status { font-size: 11px; color: var(--text3); text-align: center; margin-top: 6px;
+               min-height: 16px; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.stat-card { background: var(--bg2); border-radius: 7px; padding: 10px; text-align: center; }
+.stat-label { font-size: 10px; color: var(--text3); margin-bottom: 3px; }
+.stat-value { font-size: 22px; font-weight: 700; color: var(--purple); }
+.stat-sub { font-size: 11px; color: var(--text3); }
+.toggle-row { display: flex; align-items: center; justify-content: space-between;
+              padding: 12px 0; border-bottom: 1px solid var(--border); }
+.toggle-row:last-child { border-bottom: none; }
+.toggle-label { font-size: 13px; }
+.toggle-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- ログインビュー -->
+<div id="login-view">
+  <div class="login-box">
+    <h1>デイリーチェックイン</h1>
+    <div class="field"><label>メールアドレス</label>
+      <input type="email" id="email" placeholder="you@example.com">
+    </div>
+    <div class="field"><label>パスワード</label>
+      <input type="password" id="password" placeholder="パスワード">
+    </div>
+    <button class="btn-primary" onclick="login()">ログイン</button>
+    <div class="error-msg" id="login-error"></div>
+  </div>
+</div>
+
+<!-- アプリビュー（認証後） -->
+<div id="app-view" style="display:none">
+  <div class="app-header">
+    <div class="app-header-left">
+      <h1>デイリーチェックイン</h1>
+      <div class="date-nav">
+        <button onclick="shiftDate(-1)" style="background:none;border:none;color:#fff;cursor:pointer">◀</button>
+        <span id="header-date"></span>
+        <button onclick="shiftDate(1)" id="btn-next-day" style="background:none;border:none;color:#fff;cursor:pointer">▶</button>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+      <span class="streak-badge" id="streak-badge">🔥 -日</span>
+      <a href="index.html" style="font-size:11px;opacity:0.75;color:#fff;text-decoration:none">← ダッシュボード</a>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('habits',this)">✅ 習慣</button>
+    <button class="tab-btn" onclick="switchTab('record',this)">📝 記録</button>
+    <button class="tab-btn" onclick="switchTab('reflect',this)">🔍 振り返り</button>
+    <button class="tab-btn" onclick="switchTab('stats',this)">📊 統計</button>
+    <button class="tab-btn" onclick="switchTab('config',this)">⚙️ 設定</button>
+  </div>
+
+  <!-- 習慣タブ -->
+  <div id="tab-habits" class="tab-panel active">
+    <div class="section-label">必須 — 今日の習慣チェック</div>
+    <label class="habit-row"><input type="checkbox" id="h-logical" onchange="onHabitChange()">
+      <span class="habit-name">ロジカル思考</span><span class="habit-freq">15分/日</span></label>
+    <label class="habit-row"><input type="checkbox" id="h-critical" onchange="onHabitChange()">
+      <span class="habit-name">クリティカル思考</span><span class="habit-freq">5分/日</span></label>
+    <label class="habit-row"><input type="checkbox" id="h-reading" onchange="onHabitChange()">
+      <span class="habit-name">読書メモ・知識整理</span><span class="habit-freq">10分/日</span></label>
+    <label class="habit-row"><input type="checkbox" id="h-ai" onchange="onHabitChange()">
+      <span class="habit-name">AI活用（Claude Code等）</span><span class="habit-freq">業務活用</span></label>
+    <label class="habit-row"><input type="checkbox" id="h-blog" onchange="onHabitChange()">
+      <span class="habit-name">ブログ執筆</span><span class="habit-freq">週1〜2本</span></label>
+    <div class="section-label" style="margin-top:16px">週次（任意）</div>
+    <label class="habit-row" style="opacity:0.75"><input type="checkbox" id="h-weekly" onchange="onHabitChange()">
+      <span class="habit-name">システム思考の振り返り</span><span class="habit-freq">週1回</span></label>
+    <button class="btn-save" onclick="saveHabits()">保存して次へ →</button>
+    <div class="save-status" id="habits-status"></div>
+  </div>
+
+  <!-- 記録タブ -->
+  <div id="tab-record" class="tab-panel">
+    <div class="field-label">📖 今日やったこと・学んだこと</div>
+    <textarea id="f-today-done" rows="4" placeholder="PMBOKの第3章を読んだ…" oninput="scheduleAutoSave()"></textarea>
+    <div class="field-label">→ 明日やること</div>
+    <textarea id="f-tomorrow-tasks" rows="3" placeholder="第4章を読む" oninput="scheduleAutoSave()"></textarea>
+    <div class="field-label">📝 今月のブログ記事数（累計）</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input type="number" id="f-blog-count" min="0" value="0"
+             style="width:72px;border:1px solid var(--border);border-radius:7px;padding:8px;font-size:16px;text-align:center;background:var(--bg2);color:var(--text)"
+             oninput="scheduleAutoSave()">
+      <span style="font-size:12px;color:var(--text2)">本</span>
+    </div>
+    <div class="save-status" id="record-status"></div>
+  </div>
+
+  <!-- 振り返りタブ -->
+  <div id="tab-reflect" class="tab-panel">
+    <div class="field-label">💡 気づき・発見</div>
+    <textarea id="f-insights" rows="3" placeholder="今日の学びで「これは使える」と思ったこと…" oninput="scheduleAutoSave()"></textarea>
+    <div class="field-label">🧭 モチベーション・コンディション</div>
+    <div style="display:flex;gap:8px;margin-bottom:4px" id="mood-picker">
+      <button class="mood-btn" data-mood="😄" onclick="selectMood('😄',this)">😄</button>
+      <button class="mood-btn" data-mood="🙂" onclick="selectMood('🙂',this)">🙂</button>
+      <button class="mood-btn" data-mood="😐" onclick="selectMood('😐',this)">😐</button>
+      <button class="mood-btn" data-mood="😔" onclick="selectMood('😔',this)">😔</button>
+    </div>
+    <style>
+      .mood-btn { flex:1; font-size:22px; padding:8px; border:1px solid var(--border);
+                  border-radius:7px; background:var(--bg); cursor:pointer; }
+      .mood-btn.selected { border-color:var(--purple); background:var(--purple-l); }
+    </style>
+    <div class="field-label">🚧 障害・困っていること</div>
+    <textarea id="f-obstacles" rows="2" placeholder="時間確保が難しかった、など…" oninput="scheduleAutoSave()"></textarea>
+    <div class="save-status" id="reflect-status"></div>
+  </div>
+
+  <!-- 統計タブ -->
+  <div id="tab-stats" class="tab-panel">
+    <div class="stat-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-label">今週の習慣達成率</div>
+        <div class="stat-value" id="s-week-rate">-</div></div>
+      <div class="stat-card"><div class="stat-label">連続チェックイン</div>
+        <div class="stat-value" id="s-streak" style="color:#D85A30">-</div>
+        <div class="stat-sub">日連続 🔥</div></div>
+      <div class="stat-card"><div class="stat-label">今月のブログ記事</div>
+        <div class="stat-value" id="s-blog" style="color:#1D9E75">-</div>
+        <div class="stat-sub">本</div></div>
+      <div class="stat-card"><div class="stat-label">今月の記録日数</div>
+        <div class="stat-value" id="s-days" style="color:#BA7517">-</div>
+        <div class="stat-sub">日</div></div>
+    </div>
+    <button onclick="location.href='index.html'" style="width:100%;margin-top:4px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:10px;font-size:12px;color:var(--text2);cursor:pointer">
+      ダッシュボード（スキルマップ）を開く →
+    </button>
+  </div>
+
+  <!-- 設定タブ -->
+  <div id="tab-config" class="tab-panel">
+    <div class="section-label">リマインダー設定</div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">リマインダーメール</div>
+        <div class="toggle-desc">未チェックイン時に 6:00 / 18:00 に送信</div>
+      </div>
+      <input type="checkbox" id="cfg-enabled" style="width:18px;height:18px;accent-color:var(--purple)" onchange="saveSettings()">
+    </div>
+    <div class="field-label">宛先メールアドレス</div>
+    <input type="email" id="cfg-email" placeholder="you@example.com"
+           style="width:100%;border:1px solid var(--border);border-radius:7px;padding:10px;font-size:13px;background:var(--bg2);color:var(--text)"
+           oninput="scheduleSettingsSave()">
+    <div class="save-status" id="config-status"></div>
+  </div>
+
+</div><!-- /app-view -->
+
+</div><!-- /container -->
+
+<script>
+const CONFIG = {
+  userPoolId: '__COGNITO_USER_POOL_ID__',
+  clientId: '__COGNITO_CLIENT_ID__',
+  apiUrl: '__API_URL__',
+};
+
+const poolData = { UserPoolId: CONFIG.userPoolId, ClientId: CONFIG.clientId };
+const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+let currentUser = null;
+let idToken = null;
+let currentDate = getTodayJST();
+let selectedMood = '';
+
+function getTodayJST() {
+  const now = new Date();
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return jst.toISOString().slice(0, 10);
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'stats') loadStats();
+  if (name === 'config') loadSettings();
+}
+
+function shiftDate(delta) {
+  const d = new Date(currentDate);
+  d.setDate(d.getDate() + delta);
+  const next = d.toISOString().slice(0, 10);
+  if (next > getTodayJST()) return;
+  currentDate = next;
+  updateDateHeader();
+  loadCurrentDateData();
+}
+
+function updateDateHeader() {
+  const d = new Date(currentDate + 'T00:00:00');
+  const days = ['日','月','火','水','木','金','土'];
+  document.getElementById('header-date').textContent =
+    `${currentDate.replace(/-/g, '/')}（${days[d.getDay()]}）`;
+  document.getElementById('btn-next-day').style.opacity = currentDate === getTodayJST() ? '0.3' : '1';
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(CONFIG.apiUrl + path, {
+    ...options,
+    headers: { 'Authorization': `Bearer ${idToken}`, 'Content-Type': 'application/json', ...options.headers },
+  });
+  return res.json();
+}
+
+window.addEventListener('load', () => {
+  const user = userPool.getCurrentUser();
+  if (!user) return;
+  user.getSession((err, session) => {
+    if (err || !session.isValid()) return;
+    currentUser = user;
+    idToken = session.getIdToken().getJwtToken();
+    showApp();
+  });
+});
+
+function showApp() {
+  document.getElementById('login-view').style.display = 'none';
+  document.getElementById('app-view').style.display = 'block';
+  updateDateHeader();
+  loadCurrentDateData();
+  loadSummaryBadge();
+}
+
+function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  const cognitoUser = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: userPool });
+  const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({ Username: email, Password: password });
+
+  cognitoUser.authenticateUser(authDetails, {
+    onSuccess(session) {
+      currentUser = cognitoUser;
+      idToken = session.getIdToken().getJwtToken();
+      showApp();
+    },
+    onFailure(err) {
+      errEl.textContent = 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
+      console.error(err);
+    },
+  });
+}
+
+async function loadSummaryBadge() {
+  try {
+    const data = await api(`/checkins/summary?date=${getTodayJST()}`);
+    document.getElementById('streak-badge').textContent = `🔥 ${data.streak}日`;
+  } catch (e) { /* silent */ }
+}
+
+// ── Habits Tab ──────────────────────────────────
+const HABIT_KEYS = ['logical','critical','reading','ai','blog','weekly'];
+
+function getHabits() {
+  return Object.fromEntries(HABIT_KEYS.map(k => [k === 'weekly' ? 'weekly_reflection' : k,
+    document.getElementById('h-' + k).checked]));
+}
+
+function setHabits(habits) {
+  HABIT_KEYS.forEach(k => {
+    const key = k === 'weekly' ? 'weekly_reflection' : k;
+    document.getElementById('h-' + k).checked = habits?.[key] ?? false;
+  });
+}
+
+function onHabitChange() {
+  localStorage.setItem('habits_draft_' + currentDate, JSON.stringify(getHabits()));
+}
+
+async function saveHabits() {
+  const status = document.getElementById('habits-status');
+  status.textContent = '保存中...';
+  try {
+    await api('/checkins', {
+      method: 'POST',
+      body: JSON.stringify({ date: currentDate, habits: getHabits() }),
+    });
+    status.textContent = '✓ 保存しました';
+    await loadSummaryBadge();
+    setTimeout(() => {
+      status.textContent = '';
+      switchTab('record', document.querySelector('.tab-btn:nth-child(2)'));
+    }, 800);
+  } catch (e) {
+    status.textContent = '保存に失敗しました。再試行してください。';
+  }
+}
+
+// ── Auto-save (Record + Reflect tabs) ──────────
+let autoSaveTimer = null;
+
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(autoSave, 1000);
+}
+
+async function autoSave() {
+  const statusEls = document.querySelectorAll('.save-status');
+  statusEls.forEach(el => el.textContent = '保存中...');
+  try {
+    await api('/checkins', {
+      method: 'POST',
+      body: JSON.stringify({
+        date: currentDate,
+        habits: getHabits(),
+        today_done: document.getElementById('f-today-done')?.value ?? '',
+        tomorrow_tasks: document.getElementById('f-tomorrow-tasks')?.value ?? '',
+        blog_count: parseInt(document.getElementById('f-blog-count')?.value ?? '0', 10),
+        insights: document.getElementById('f-insights')?.value ?? '',
+        mood: selectedMood,
+        obstacles: document.getElementById('f-obstacles')?.value ?? '',
+      }),
+    });
+    statusEls.forEach(el => { el.textContent = '✓ 自動保存'; setTimeout(() => el.textContent='', 2000); });
+  } catch (e) {
+    statusEls.forEach(el => el.textContent = '保存に失敗しました');
+  }
+}
+
+// ── Reflect Tab ─────────────────────────────────
+function selectMood(mood, el) {
+  selectedMood = mood;
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  scheduleAutoSave();
+}
+
+// ── Load current date data ───────────────────────
+async function loadCurrentDateData() {
+  const draft = localStorage.getItem('habits_draft_' + currentDate);
+  try {
+    const data = await api('/checkins/' + currentDate);
+    if (data) {
+      setHabits(data.habits);
+      if (document.getElementById('f-today-done')) {
+        document.getElementById('f-today-done').value = data.today_done ?? '';
+        document.getElementById('f-tomorrow-tasks').value = data.tomorrow_tasks ?? '';
+        document.getElementById('f-blog-count').value = data.blog_count ?? 0;
+      }
+      if (document.getElementById('f-insights')) {
+        document.getElementById('f-insights').value = data.insights ?? '';
+        document.getElementById('f-obstacles').value = data.obstacles ?? '';
+        if (data.mood) {
+          selectedMood = data.mood;
+          document.querySelectorAll('.mood-btn').forEach(b => {
+            b.classList.toggle('selected', b.dataset.mood === data.mood);
+          });
+        }
+      }
+    } else if (draft) {
+      setHabits(JSON.parse(draft));
+    } else {
+      setHabits({});
+    }
+  } catch (e) {
+    if (draft) setHabits(JSON.parse(draft));
+  }
+}
+
+// ── Stats Tab ────────────────────────────────────
+async function loadStats() {
+  try {
+    const data = await api(`/checkins/summary?date=${getTodayJST()}`);
+    document.getElementById('s-week-rate').textContent = Math.round(data.this_week_rate * 100) + '%';
+    document.getElementById('s-streak').textContent = data.streak;
+    document.getElementById('s-blog').textContent = data.this_month_blog_count;
+    document.getElementById('s-days').textContent = data.this_month_checkin_days;
+  } catch (e) { /* silent */ }
+}
+
+// ── Settings Tab ─────────────────────────────────
+async function loadSettings() {
+  try {
+    const data = await api('/settings');
+    document.getElementById('cfg-enabled').checked = data.reminder_enabled;
+    document.getElementById('cfg-email').value = data.reminder_email;
+  } catch (e) { /* silent */ }
+}
+
+let settingsSaveTimer = null;
+function scheduleSettingsSave() {
+  clearTimeout(settingsSaveTimer);
+  settingsSaveTimer = setTimeout(saveSettings, 1000);
+}
+
+async function saveSettings() {
+  const status = document.getElementById('config-status');
+  status.textContent = '保存中...';
+  try {
+    await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        reminder_enabled: document.getElementById('cfg-enabled').checked,
+        reminder_email: document.getElementById('cfg-email').value,
+      }),
+    });
+    status.textContent = '✓ 保存しました';
+    setTimeout(() => status.textContent = '', 2000);
+  } catch (e) {
+    status.textContent = '保存に失敗しました';
+  }
+}
+</script>
+</body>
+</html>
