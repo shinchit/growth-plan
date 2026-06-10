@@ -155,6 +155,15 @@ td .blog-item { font-size: 12px; color: var(--text2); line-height: 1.8; }
 
 .save-hint { font-size: 12px; color: var(--text3); margin-top: 8px; padding: 6px 10px; background: var(--bg2); border-radius: var(--radius-sm); display: none; }
 .save-hint.show { display: block; }
+
+/* デイリーサマリーカード */
+.daily-card { background: var(--purple-l); border-radius: var(--radius); padding: 1rem 1.25rem;
+              margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; }
+.daily-card-left { display: flex; flex-direction: column; gap: 4px; }
+.daily-card-title { font-size: 13px; font-weight: 600; color: var(--purple-d); }
+.daily-card-stats { font-size: 12px; color: var(--text2); display: flex; gap: 14px; }
+.daily-card-link { font-size: 12px; font-weight: 600; color: var(--purple); text-decoration: none;
+                   padding: 6px 14px; border: 1px solid var(--purple); border-radius: 20px; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -163,6 +172,18 @@ td .blog-item { font-size: 12px; color: var(--text2); line-height: 1.8; }
   <div class="header">
     <h1>シニアアーキテクト 3か年成長戦略</h1>
     <p>2026 – 2028 ｜ 技術 × 事業 × 組織を横断する実践家へ</p>
+  </div>
+
+  <!-- デイリーサマリーカード（認証時のみ表示） -->
+  <div class="daily-card" id="daily-summary-card" style="display:none">
+    <div class="daily-card-left">
+      <div class="daily-card-title" id="dsc-title">今日のチェックイン</div>
+      <div class="daily-card-stats">
+        <span id="dsc-streak">🔥 - 日連続</span>
+        <span id="dsc-week">今週 -%</span>
+      </div>
+    </div>
+    <a href="daily.html" class="daily-card-link" id="dsc-link">記録する →</a>
   </div>
 
   <div class="metrics">
@@ -550,6 +571,35 @@ function switchTab(name, btn) {
 buildSliders();
 // Radar builds after Chart.js is ready (script is sync, so fine here)
 buildRadar();
+</script>
+
+<script src="https://unpkg.com/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
+<script>
+(function() {
+  const CONFIG = { userPoolId: '__COGNITO_USER_POOL_ID__', clientId: '__COGNITO_CLIENT_ID__', apiUrl: '__API_URL__' };
+  const userPool = new AmazonCognitoIdentity.CognitoUserPool({ UserPoolId: CONFIG.userPoolId, ClientId: CONFIG.clientId });
+
+  function getTodayJST() {
+    const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    return jst.toISOString().slice(0, 10);
+  }
+
+  const user = userPool.getCurrentUser();
+  if (!user) return;
+  user.getSession(async (err, session) => {
+    if (err || !session.isValid()) return;
+    const token = session.getIdToken().getJwtToken();
+    try {
+      const res = await fetch(`${CONFIG.apiUrl}/checkins/summary?date=${getTodayJST()}`,
+        { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      document.getElementById('dsc-streak').textContent = `🔥 ${data.streak}日連続`;
+      document.getElementById('dsc-week').textContent = `今週 ${Math.round(data.this_week_rate * 100)}%`;
+      document.getElementById('dsc-link').textContent = data.today_habits_done ? '確認する →' : '記録する →';
+      document.getElementById('daily-summary-card').style.display = 'flex';
+    } catch (e) { /* silent */ }
+  });
+})();
 </script>
 </body>
 </html>
