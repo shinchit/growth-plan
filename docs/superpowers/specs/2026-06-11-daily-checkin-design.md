@@ -49,8 +49,9 @@
   テーブル: growth-checkins（チェックインレコード＋設定レコードを同一テーブルで管理）
 
 [Amazon EventBridge]
-  スケジュールルール: cron(0 * * * ? *)  ─ 毎時0分に reminder-send Lambda を起動
-  → 各ユーザーの設定 reminder_time と照合し、送信済みでなければ SES 経由でメール送信
+  ルール1: cron(0 21 * * ? *)  ─ UTC 21:00 = JST 6:00  → reminder-send Lambda
+  ルール2: cron(0 9 * * ? *)   ─ UTC 9:00  = JST 18:00 → reminder-send Lambda
+  → 各ユーザーの当日チェックイン有無を確認し、未記録なら SES でメール送信
 
 [Amazon SES]
   送信元: noreply@<SES検証済みドメイン>
@@ -94,9 +95,7 @@
 | `userId` (PK) | String | Cognito sub |
 | `date` (SK) | String | 固定値 `"settings"` |
 | `reminder_enabled` | Boolean | リマインダーのオン/オフ |
-| `reminder_time` | String | 送信時刻（`HH:MM`、JST） |
 | `reminder_email` | String | 宛先メールアドレス |
-| `last_reminded_date` | String | 最後に送信した日付（`YYYY-MM-DD`）。同日二重送信防止用 |
 
 ---
 
@@ -117,7 +116,7 @@
 | 📝 記録 | 任意 | 今日やったこと・明日のタスク・月次ブログ本数 |
 | 🔍 振り返り | 任意 | 気づき・モチベーション絵文字・障害メモ |
 | 📊 統計 | 読み取り専用 | 達成率・連続日数・月次ブログ数、スキルマップリンク |
-| ⚙️ 設定 | — | リマインダーのオン/オフ・送信時刻・宛先メールアドレス |
+| ⚙️ 設定 | — | リマインダーのオン/オフ・宛先メールアドレス（送信時刻は 6:00 / 18:00 固定） |
 
 **保存動作**:
 - 習慣タブの「保存して次へ」ボタンで `POST /checkins` を呼び出す
@@ -168,7 +167,6 @@
 ```json
 {
   "reminder_enabled": true,
-  "reminder_time": "20:00",
   "reminder_email": "you@example.com"
 }
 ```
@@ -179,7 +177,6 @@
 ```json
 {
   "reminder_enabled": true,
-  "reminder_time": "20:00",
   "reminder_email": "you@example.com"
 }
 ```
@@ -216,7 +213,7 @@
 - `RestApi` + `CognitoUserPoolsAuthorizer` (API Gateway)
 - `Function` × 6 (Lambda, Node.js 22.x)
 - `Table` (DynamoDB, PAY_PER_REQUEST)
-- `Rule` (EventBridge, cron 毎時)
+- `Rule` × 2 (EventBridge, JST 6:00 / 18:00)
 - SES 送信元ドメイン検証（手動または CDK の `EmailIdentity`）
 
 リポジトリ構成（追加分）:
@@ -252,7 +249,7 @@ growth-plan/
 | オフライン | 習慣チェックのみ LocalStorage に一時保存し、オンライン復帰後に同期 |
 | 同日の重複保存 | upsert で上書き（エラーにしない） |
 | リマインダー送信失敗（SES エラー） | Lambda が CloudWatch Logs に記録。ユーザーへの影響なし（サイレント失敗） |
-| 当日チェックイン済みなのにリマインダー送信 | `last_reminded_date` と今日の日付を比較し、送信済みならスキップ。チェックイン済みかどうかも確認してスキップ |
+| 当日チェックイン済みなのにリマインダー送信 | Lambda が当日レコードの存在を確認し、記録済みならスキップ |
 
 ---
 
@@ -267,15 +264,16 @@ growth-plan/
 ## 9. リマインダー動作フロー
 
 ```
-[EventBridge] 毎時0分
+[EventBridge ルール1 / ルール2]
+  ルール1: cron(0 21 * * ? *) = JST 6:00  （朝）
+  ルール2: cron(0 9  * * ? *) = JST 18:00 （夕）
        │
        ▼
-[reminder-send Lambda]
+[reminder-send Lambda]（両ルール共通）
   1. DynamoDB で SK = "settings" の全レコードをスキャン
-  2. reminder_enabled = true かつ reminder_time の時刻（JST）が現在時刻と一致するユーザーを抽出
+  2. reminder_enabled = true のユーザーを抽出
   3. 対象ユーザーの当日チェックインレコード（SK = 今日の日付）を確認
-  4. チェックイン未記録 かつ last_reminded_date ≠ 今日 → SES でメール送信
-  5. last_reminded_date を今日の日付に更新（二重送信防止）
+  4. チェックイン未記録 → SES でメール送信
        │
        ▼
 [Amazon SES]
@@ -285,7 +283,7 @@ growth-plan/
     → https://growth.calm-pm-lab.com/daily.html
 ```
 
-**時刻照合の精度**: reminder_time は `HH:MM` で保存。EventBridge が毎時0分に起動するため、分は常に `00` 固定とし、ユーザーが設定できる送信時刻は `XX:00` のみ（例: 20:00、21:00）。
+**二重送信の扱い**: 朝に未記録でメール送信 → 昼にチェックイン → 夕方 Lambda 起動時にチェックイン済みを確認してスキップ。`last_reminded_date` は不要。
 
 ---
 
