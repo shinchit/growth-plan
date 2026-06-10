@@ -8,7 +8,7 @@
 
 ## 1. 概要
 
-既存ダッシュボード (`index.html`) に加え、専用のデイリーチェックインページ (`daily.html`) を同一 GitHub Pages ドメインに追加する。記録データは AWS DynamoDB に保存し、Cognito で認証する。IaC は AWS CDK (TypeScript) で管理し、クレデンシャルはリポジトリに含めない。
+既存ダッシュボード (`index.html`) に加え、専用のデイリーチェックインページ (`daily.html`) を同一 GitHub Pages ドメインに追加する。記録データは AWS DynamoDB に保存し、Cognito で認証する。未チェックイン時は設定したメールアドレスへ Amazon SES 経由でリマインダーを送信する。IaC は AWS CDK (TypeScript) で管理し、クレデンシャルはリポジトリに含めない。
 
 ---
 
@@ -32,16 +32,29 @@
   POST   /checkins           → checkin-upsert Lambda
   GET    /checkins/{date}    → checkin-get Lambda
   GET    /checkins/summary   → summary-get Lambda
+  GET    /settings           → settings-get Lambda
+  PUT    /settings           → settings-upsert Lambda
        │
        ▼
-[AWS Lambda × 3]
-  checkin-upsert  : DynamoDB に当日レコードを作成・上書き (upsert)
-  checkin-get     : 指定日のレコードを取得
-  summary-get     : 直近30日を集計（streak・週次達成率・月次ブログ数）
+[AWS Lambda × 5]
+  checkin-upsert   : DynamoDB に当日レコードを作成・上書き (upsert)
+  checkin-get      : 指定日のレコードを取得
+  summary-get      : 直近30日を集計（streak・週次達成率・月次ブログ数）
+  settings-get     : ユーザー設定を取得
+  settings-upsert  : ユーザー設定を保存
+  reminder-send    : EventBridge から起動。未チェックイン全ユーザーへ SES でメール送信
        │
        ▼
 [Amazon DynamoDB]
-  テーブル: growth-checkins
+  テーブル: growth-checkins（チェックインレコード＋設定レコードを同一テーブルで管理）
+
+[Amazon EventBridge]
+  スケジュールルール: cron(0 * * * ? *)  ─ 毎時0分に reminder-send Lambda を起動
+  → 各ユーザーの設定 reminder_time と照合し、送信済みでなければ SES 経由でメール送信
+
+[Amazon SES]
+  送信元: noreply@<SES検証済みドメイン>
+  宛先: ユーザーが設定した reminder_email
 ```
 
 ---
@@ -74,6 +87,17 @@
 | `blog` | ブログ執筆 | 週1〜2本 |
 | `weekly_reflection` | システム思考の振り返り | 週1回 |
 
+### 設定レコード（同一テーブル内）
+
+| キー | 型 | 説明 |
+|---|---|---|
+| `userId` (PK) | String | Cognito sub |
+| `date` (SK) | String | 固定値 `"settings"` |
+| `reminder_enabled` | Boolean | リマインダーのオン/オフ |
+| `reminder_time` | String | 送信時刻（`HH:MM`、JST） |
+| `reminder_email` | String | 宛先メールアドレス |
+| `last_reminded_date` | String | 最後に送信した日付（`YYYY-MM-DD`）。同日二重送信防止用 |
+
 ---
 
 ## 4. フロントエンド
@@ -93,6 +117,7 @@
 | 📝 記録 | 任意 | 今日やったこと・明日のタスク・月次ブログ本数 |
 | 🔍 振り返り | 任意 | 気づき・モチベーション絵文字・障害メモ |
 | 📊 統計 | 読み取り専用 | 達成率・連続日数・月次ブログ数、スキルマップリンク |
+| ⚙️ 設定 | — | リマインダーのオン/オフ・送信時刻・宛先メールアドレス |
 
 **保存動作**:
 - 習慣タブの「保存して次へ」ボタンで `POST /checkins` を呼び出す
@@ -137,6 +162,30 @@
 
 レスポンス: 上記レコード全体（存在しない場合は `null`）
 
+### GET /settings
+
+レスポンス:
+```json
+{
+  "reminder_enabled": true,
+  "reminder_time": "20:00",
+  "reminder_email": "you@example.com"
+}
+```
+
+### PUT /settings
+
+リクエスト（JSON）:
+```json
+{
+  "reminder_enabled": true,
+  "reminder_time": "20:00",
+  "reminder_email": "you@example.com"
+}
+```
+
+レスポンス: `{ "ok": true }`
+
 ### GET /checkins/summary
 
 クエリパラメータ: `?date=YYYY-MM-DD`（省略時はサーバー側の今日の日付）
@@ -165,8 +214,10 @@
 管理リソース:
 - `CfnUserPool` / `CfnUserPoolClient` (Cognito)
 - `RestApi` + `CognitoUserPoolsAuthorizer` (API Gateway)
-- `Function` × 3 (Lambda, Node.js 22.x)
+- `Function` × 6 (Lambda, Node.js 22.x)
 - `Table` (DynamoDB, PAY_PER_REQUEST)
+- `Rule` (EventBridge, cron 毎時)
+- SES 送信元ドメイン検証（手動または CDK の `EmailIdentity`）
 
 リポジトリ構成（追加分）:
 ```
@@ -178,6 +229,9 @@ growth-plan/
       checkin-upsert/index.ts
       checkin-get/index.ts
       summary-get/index.ts
+      settings-get/index.ts
+      settings-upsert/index.ts
+      reminder-send/index.ts
   daily.html
   docs/superpowers/specs/2026-06-11-daily-checkin-design.md
 ```
@@ -197,6 +251,8 @@ growth-plan/
 | API タイムアウト（>10s） | 「保存に失敗しました。再試行してください。」トースト表示 |
 | オフライン | 習慣チェックのみ LocalStorage に一時保存し、オンライン復帰後に同期 |
 | 同日の重複保存 | upsert で上書き（エラーにしない） |
+| リマインダー送信失敗（SES エラー） | Lambda が CloudWatch Logs に記録。ユーザーへの影響なし（サイレント失敗） |
+| 当日チェックイン済みなのにリマインダー送信 | `last_reminded_date` と今日の日付を比較し、送信済みならスキップ。チェックイン済みかどうかも確認してスキップ |
 
 ---
 
@@ -208,9 +264,33 @@ growth-plan/
 
 ---
 
-## 9. 今後の拡張（スコープ外）
+## 9. リマインダー動作フロー
+
+```
+[EventBridge] 毎時0分
+       │
+       ▼
+[reminder-send Lambda]
+  1. DynamoDB で SK = "settings" の全レコードをスキャン
+  2. reminder_enabled = true かつ reminder_time の時刻（JST）が現在時刻と一致するユーザーを抽出
+  3. 対象ユーザーの当日チェックインレコード（SK = 今日の日付）を確認
+  4. チェックイン未記録 かつ last_reminded_date ≠ 今日 → SES でメール送信
+  5. last_reminded_date を今日の日付に更新（二重送信防止）
+       │
+       ▼
+[Amazon SES]
+  件名: 「【成長計画】今日のチェックインがまだです」
+  本文:
+    今日の習慣チェックを記録しましょう。
+    → https://growth.calm-pm-lab.com/daily.html
+```
+
+**時刻照合の精度**: reminder_time は `HH:MM` で保存。EventBridge が毎時0分に起動するため、分は常に `00` 固定とし、ユーザーが設定できる送信時刻は `XX:00` のみ（例: 20:00、21:00）。
+
+---
+
+## 10. 今後の拡張（スコープ外）
 
 - 週次・月次振り返りレポート画面
-- Push 通知・リマインダー
 - スキルマップの自動更新（統計タブからの直接編集）
 - CSV/JSON エクスポート
