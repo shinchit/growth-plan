@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>シニアアーキテクト 3か年成長戦略 2026–2028</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #ffffff;
+  --bg2: #f5f4f0;
+  --bg3: #eeecea;
+  --text: #1a1a18;
+  --text2: #5a5a56;
+  --text3: #8c8b84;
+  --border: rgba(0,0,0,0.1);
+  --border2: rgba(0,0,0,0.18);
+  --purple: #534AB7;
+  --purple-l: #EEEDFE;
+  --purple-d: #3C3489;
+  --teal: #1D9E75;
+  --teal-l: #E1F5EE;
+  --teal-d: #085041;
+  --coral: #D85A30;
+  --coral-l: #FAECE7;
+  --coral-d: #993C1D;
+  --amber: #BA7517;
+  --amber-l: #FAEEDA;
+  --amber-d: #854F0B;
+  --blue: #378ADD;
+  --blue-l: #E6F1FB;
+  --blue-d: #185FA5;
+  --pink: #D4537E;
+  --pink-l: #FBEAF0;
+  --pink-d: #72243E;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1a;
+    --bg2: #252523;
+    --bg3: #2e2e2b;
+    --text: #e8e6df;
+    --text2: #a8a69e;
+    --text3: #6e6c66;
+    --border: rgba(255,255,255,0.1);
+    --border2: rgba(255,255,255,0.18);
+    --purple-l: #26215C;
+    --purple-d: #CECBF6;
+    --teal-l: #04342C;
+    --teal-d: #9FE1CB;
+    --coral-l: #4A1B0C;
+    --coral-d: #F5C4B3;
+    --amber-l: #412402;
+    --amber-d: #FAC775;
+    --blue-l: #042C53;
+    --blue-d: #B5D4F4;
+    --pink-l: #4B1528;
+    --pink-d: #F4C0D1;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 15px; }
+.container { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+/* Header */
+.header { margin-bottom: 2.5rem; }
+.header h1 { font-size: 26px; font-weight: 600; margin-bottom: 4px; }
+.header p { font-size: 14px; color: var(--text2); }
+
+/* Metrics */
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 2.5rem; }
+.metric { background: var(--bg2); border-radius: var(--radius); padding: 0.9rem 1.1rem; }
+.metric-label { font-size: 12px; color: var(--text3); margin-bottom: 4px; }
+.metric-value { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1.2; }
+.metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* Tabs */
+.tab-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 2rem; border-bottom: 0.5px solid var(--border); padding-bottom: 0.75rem; }
+.tab-btn { font-size: 13px; padding: 5px 16px; border: 0.5px solid var(--border2); border-radius: 20px; background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; }
+.tab-btn:hover { background: var(--bg2); color: var(--text); }
+.tab-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Section title */
+.sec-title { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+.sec-sub { font-size: 13px; color: var(--text2); margin-bottom: 1.5rem; }
+
+/* Roadmap */
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 1.25rem; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text2); }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.roadmap-year { margin-bottom: 1.75rem; }
+.year-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; color: var(--text); }
+.year-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.q-row { display: grid; grid-template-columns: 56px 1fr; gap: 0; align-items: start; margin-bottom: 2px; }
+.q-label { font-size: 12px; color: var(--text3); padding-top: 8px; }
+.bar-stack { display: flex; flex-direction: column; gap: 3px; padding: 4px 0; }
+.bar { height: 28px; border-radius: 5px; display: flex; align-items: center; padding: 0 12px; font-size: 12px; color: #fff; font-weight: 500; cursor: default; transition: opacity .15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar:hover { opacity: 0.82; }
+
+/* Skills */
+.skills-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+@media (max-width: 640px) { .skills-layout { grid-template-columns: 1fr; } }
+.radar-box { background: var(--bg2); border-radius: var(--radius); padding: 1.25rem; }
+.radar-legend { display: flex; gap: 16px; justify-content: center; margin-top: 10px; font-size: 12px; color: var(--text2); flex-wrap: wrap; }
+.radar-legend span { display: flex; align-items: center; gap: 5px; }
+.rl-line { display: inline-block; width: 20px; height: 2px; border-radius: 1px; }
+.sliders-box { display: flex; flex-direction: column; gap: 0; }
+.edit-mode-btn { font-size: 12px; padding: 4px 12px; border: 0.5px solid var(--border2); border-radius: 20px; background: transparent; color: var(--text2); cursor: pointer; margin-bottom: 1rem; transition: all .15s; }
+.edit-mode-btn:hover { background: var(--bg2); }
+.edit-mode-btn.on { background: var(--purple); color: #fff; border-color: var(--purple); }
+.skill-row { padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+.skill-row:last-child { border-bottom: none; }
+.skill-meta { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.skill-name { font-size: 13px; color: var(--text); }
+.skill-vals { font-size: 12px; color: var(--text3); }
+.bar-track { background: var(--bg3); border-radius: 4px; height: 7px; overflow: hidden; position: relative; }
+.bar-target { height: 100%; border-radius: 4px; opacity: 0.25; position: absolute; left: 0; top: 0; }
+.bar-now { height: 100%; border-radius: 4px; position: absolute; left: 0; top: 0; transition: width .4s ease; }
+.skill-slider { width: 100%; margin-top: 6px; display: none; accent-color: var(--purple); }
+.edit-on .skill-slider { display: block; }
+
+/* Strategy */
+.phase-card { border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; background: var(--bg); margin-bottom: 10px; }
+.phase-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.phase-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.phase-title { font-size: 14px; font-weight: 600; }
+.phase-period { font-size: 12px; color: var(--text3); margin-left: auto; white-space: nowrap; }
+.flow { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.flow-box { padding: 4px 10px; border-radius: 5px; background: var(--bg2); color: var(--text2); }
+.flow-box.goal { background: var(--purple-l); color: var(--purple-d); font-weight: 500; }
+.flow-arrow { color: var(--text3); }
+.phase-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 5px; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { display: inline-block; font-size: 11px; padding: 3px 9px; border-radius: 10px; font-weight: 500; }
+.tag-purple { background: var(--purple-l); color: var(--purple-d); }
+.tag-teal   { background: var(--teal-l);   color: var(--teal-d); }
+.tag-coral  { background: var(--coral-l);  color: var(--coral-d); }
+.tag-amber  { background: var(--amber-l);  color: var(--amber-d); }
+.tag-blue   { background: var(--blue-l);   color: var(--blue-d); }
+.tag-pink   { background: var(--pink-l);   color: var(--pink-d); }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { font-size: 12px; font-weight: 600; color: var(--text2); text-align: left; padding: 7px 12px; border-bottom: 0.5px solid var(--border2); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 0.5px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+td .tag { margin: 1px 2px; }
+td .book { font-size: 12px; color: var(--text2); line-height: 1.8; }
+td .blog-item { font-size: 12px; color: var(--text2); line-height: 1.8; }
+
+.save-hint { font-size: 12px; color: var(--text3); margin-top: 8px; padding: 6px 10px; background: var(--bg2); border-radius: var(--radius-sm); display: none; }
+.save-hint.show { display: block; }
+
+/* デイリーサマリーカード */
+.daily-card { background: var(--purple-l); border-radius: var(--radius); padding: 1rem 1.25rem;
+              margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; }
+.daily-card-left { display: flex; flex-direction: column; gap: 4px; }
+.daily-card-title { font-size: 13px; font-weight: 600; color: var(--purple-d); }
+.daily-card-stats { font-size: 12px; color: var(--text2); display: flex; gap: 14px; }
+.daily-card-link { font-size: 12px; font-weight: 600; color: var(--purple); text-decoration: none;
+                   padding: 6px 14px; border: 1px solid var(--purple); border-radius: 20px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>シニアアーキテクト 3か年成長戦略</h1>
+    <p>2026 – 2028 ｜ 技術 × 事業 × 組織を横断する実践家へ</p>
+  </div>
+
+  <!-- デイリーサマリーカード（認証時のみ表示） -->
+  <div class="daily-card" id="daily-summary-card" style="display:none">
+    <div class="daily-card-left">
+      <div class="daily-card-title" id="dsc-title">今日のチェックイン</div>
+      <div class="daily-card-stats">
+        <span id="dsc-streak">🔥 - 日連続</span>
+        <span id="dsc-week">今週 -%</span>
+      </div>
+    </div>
+    <a href="daily.html" class="daily-card-link" id="dsc-link">記録する →</a>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">計画期間</div><div class="metric-value">3年</div><div class="metric-sub">2026〜2028</div></div>
+    <div class="metric"><div class="metric-label">取得目標資格</div><div class="metric-value">3+</div><div class="metric-sub">PMP / TOGAF / 簿記2級</div></div>
+    <div class="metric"><div class="metric-label">ブログ目標</div><div class="metric-value">80+</div><div class="metric-sub">3年累計記事数</div></div>
+    <div class="metric"><div class="metric-label">最終ゴール</div><div class="metric-value" style="font-size:16px;line-height:1.4">発信型<br>アーキテクト</div><div class="metric-sub">コンサル・講演・執筆</div></div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('roadmap',this)">ロードマップ</button>
+    <button class="tab-btn" onclick="switchTab('skills',this)">スキルマップ</button>
+    <button class="tab-btn" onclick="switchTab('strategy',this)">現在地 → 目標 → 施策</button>
+    <button class="tab-btn" onclick="switchTab('materials',this)">教材・ブログ対応表</button>
+  </div>
+
+  <!-- ===== ROADMAP ===== -->
+  <div id="tab-roadmap" class="tab-panel active">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#534AB7"></div>思考・基盤</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>資格・認定</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#D85A30"></div>設計・技術</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#BA7517"></div>事業・会計</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>AI・最前線</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#D4537E"></div>発信・活動</div>
+    </div>
+
+    <div class="roadmap-year">
+      <div class="year-label"><span class="year-dot" style="background:#534AB7"></span>2026年 ― 思考基盤の確立 ・PMP取得</div>
+      <div class="q-row"><span class="q-label">Q3</span>
+        <div class="bar-stack">
+          <div class="bar" style="background:#534AB7;width:88%">ロジカル思考・クリティカル思考の体系化</div>
+          <div class="bar" style="background:#1D9E75;width:62%">PMP学習開始（PMBOK精読）</div>
+          <div class="bar" style="background:#D4537E;width:50%">ブログ：思考法シリーズ 3〜5本</div>
+        </div>
+      </div>
+      <div class="q-row"><span class="q-label">Q4</span>
+        <div class="bar-stack">
+          <div class="bar" style="background:#1D9E75;width:96%">PMP 受験・合格 🎯</div>
+          <div class="bar" style="background:#D4537E;width:44%">ブログ：PM・プロジェクト設計記事</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="roadmap-year">
+      <div class="year-label"><span class="year-dot" style="background:#D85A30"></span>2027年 ― 設計力・全体最適の深化</div>
+      <div class="q-row"><span class="q-label">Q1</span>
+        <div class="bar-stack">
+          <div class="bar" style="background:#534AB7;width:74%">システム思考（学習する組織・第五の規律）</div>
+          <div class="bar" style="background:#D85A30;width:70%">DDD（エヴァンス本 ＋ 実践DDD）</div>
+          <div class="bar" style="background:#D4537E;width:44%">ブログ：設計・DDD記事 3本+</div>
+        </div>
+      </div>
+      <div class="q-row"><span class="q-label">Q2</span>
+        <div class="bar-stack">
+          <div class="bar" style="background:#1D9E75;width:80%">TOGAF 認定取得 🎯</div>
+          <div class="bar" style="background:#D4537E;width:46%">ブログ：EA・アーキテクチャ記事 3本+</div>
+        </div>
+      </div>
+      <div class="q-row"><span class="q-label">Q3</span>
+        <div class="bar-stack">
+          <div class="bar" style="background:#BA7517;width:80%">会計（財務3表・MBAアカウンティング）</div>
+          <div class="bar" style="background:#BA7517;width:62%">事業戦略（競争の戦略・MECE思考）</div>
+          <div class="bar" style="background:#D4537E;width:46%">ブログ：企業分析・経営視点記事</div>
+        </div>
+      </div>
+      <div class="q-row"><span class="q-label">Q4</span>
+        <div class="bar-stack">
+          <div class="bar" style="background:#378ADD;width:90%">AIアーキテクチャ（Agent / RAG / MCP）</div>
+          <div class="bar" style="background:#D4537E;width:58%">ブログ：AI技術・実装記事 5本+</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="roadmap-year">
+      <div class="year-label"><span class="year-dot" style="background:#378ADD"></span>2028年 ― 統合・発信・外部活動</div>
+      <div class="q-row"><span class="q-label">Q1</span>
+        <div class="bar-stack">
+          <div class="bar" style="background:#1D9E75;width:68%">簿記2級 取得 🎯（任意）</div>
+          <div class="bar" style="background:#378ADD;width:80%">AIシステム設計の実践（本番プロジェクト）</div>
+        </div>
+      </div>
+      <div class="q-row"><span class="q-label">Q2</span>
+        <div class="bar-stack">
+          <div class="bar" style="background:#D4537E;width:88%">技術同人誌 or Zenn Book 執筆開始</div>
+          <div class="bar" style="background:#534AB7;width:74%">組織変革・ファシリテーション実践</div>
+        </div>
+      </div>
+      <div class="q-row"><span class="q-label">Q3–Q4</span>
+        <div class="bar-stack">
+          <div class="bar" style="background:#D4537E;width:95%">登壇・社外勉強会・コンサルタント活動</div>
+          <div class="bar" style="background:#378ADD;width:84%">AIエージェント × ビジネス設計の統合</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SKILLS ===== -->
+  <div id="tab-skills" class="tab-panel">
+    <div class="sec-title">スキルマップ</div>
+    <div class="sec-sub">現在値はスライダーで調整できます。値はブラウザに自動保存されます。</div>
+    <div class="skills-layout">
+      <div>
+        <div class="radar-box">
+          <canvas id="radarChart" height="300" role="img" aria-label="スキルレーダーチャート：現在値と2028年目標の比較"></canvas>
+          <div class="radar-legend">
+            <span><span class="rl-line" style="background:#534AB7"></span>2028年 目標</span>
+            <span><span class="rl-line" style="background:#9c9a92;border-top:1.5px dashed #9c9a92;height:0"></span>現在</span>
+          </div>
+        </div>
+      </div>
+      <div class="sliders-box" id="sliders-box">
+        <button class="edit-mode-btn" id="edit-btn" onclick="toggleEdit()">✏️ 現在値を編集する</button>
+        <div id="skill-save-hint" class="save-hint">変更はブラウザに自動保存されました ✓</div>
+        <!-- skill rows injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STRATEGY ===== -->
+  <div id="tab-strategy" class="tab-panel">
+    <div class="sec-title">現在地 → 目標 → 施策</div>
+    <div class="sec-sub">5つの成長フェーズで整理した戦略マップ。</div>
+
+    <div class="phase-card">
+      <div class="phase-head"><div class="phase-dot" style="background:#534AB7"></div><div class="phase-title">フェーズ1：思考基盤の確立</div><div class="phase-period">2026 Q3〜Q4</div></div>
+      <div class="flow"><div class="flow-box">現在：直感的判断・局所最適</div><div class="flow-arrow">→</div><div class="flow-box goal">目標：構造的思考・論理武装</div></div>
+      <div class="phase-label">施策</div>
+      <div class="tags">
+        <span class="tag tag-purple">ロジカルシンキング 15分/日</span>
+        <span class="tag tag-purple">クリティカルシンキング 5分/日</span>
+        <span class="tag tag-teal">PMP学習（週20時間）</span>
+        <span class="tag tag-teal">PMP受験・合格</span>
+        <span class="tag tag-coral">ブログ：思考法シリーズ</span>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head"><div class="phase-dot" style="background:#D85A30"></div><div class="phase-title">フェーズ2：設計力・全体最適の深化</div><div class="phase-period">2027 Q1〜Q2</div></div>
+      <div class="flow"><div class="flow-box">現在：技術設計は得意</div><div class="flow-arrow">→</div><div class="flow-box goal">目標：組織・EA・全体設計者</div></div>
+      <div class="phase-label">施策</div>
+      <div class="tags">
+        <span class="tag tag-purple">システム思考（学習する組織）</span>
+        <span class="tag tag-blue">DDD（エヴァンス本）</span>
+        <span class="tag tag-teal">TOGAF認定取得</span>
+        <span class="tag tag-coral">設計資料・EA図の公開</span>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head"><div class="phase-dot" style="background:#BA7517"></div><div class="phase-title">フェーズ3：経営視点の獲得</div><div class="phase-period">2027 Q3</div></div>
+      <div class="flow"><div class="flow-box">現在：技術視点中心</div><div class="flow-arrow">→</div><div class="flow-box goal">目標：P/L・ROI・戦略で語れる</div></div>
+      <div class="phase-label">施策</div>
+      <div class="tags">
+        <span class="tag tag-amber">財務3表を知ってるだけの人材本</span>
+        <span class="tag tag-amber">MBAアカウンティング</span>
+        <span class="tag tag-amber">競争の戦略（ポーター）</span>
+        <span class="tag tag-coral">企業分析ブログ 5本+</span>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head"><div class="phase-dot" style="background:#378ADD"></div><div class="phase-title">フェーズ4：AIアーキテクチャの確立</div><div class="phase-period">2027 Q4</div></div>
+      <div class="flow"><div class="flow-box">現在：AI活用（利用者）</div><div class="flow-arrow">→</div><div class="flow-box goal">目標：AI設計者・実装者</div></div>
+      <div class="phase-label">施策</div>
+      <div class="tags">
+        <span class="tag tag-blue">Agent / RAG / MCP 実装</span>
+        <span class="tag tag-blue">LLMアプリ本番稼働</span>
+        <span class="tag tag-coral">技術記事 5本+（Zenn/Qiita）</span>
+      </div>
+    </div>
+
+    <div class="phase-card">
+      <div class="phase-head"><div class="phase-dot" style="background:#D4537E"></div><div class="phase-title">フェーズ5：統合・発信・外部活動</div><div class="phase-period">2028年</div></div>
+      <div class="flow"><div class="flow-box">現在：社内での影響力</div><div class="flow-arrow">→</div><div class="flow-box goal">目標：業界への発信・コンサル</div></div>
+      <div class="phase-label">施策</div>
+      <div class="tags">
+        <span class="tag tag-coral">技術同人誌 or Zenn Book 執筆</span>
+        <span class="tag tag-coral">登壇・外部勉強会</span>
+        <span class="tag tag-purple">ファシリテーション実践</span>
+        <span class="tag tag-teal">コンサルティング案件</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MATERIALS ===== -->
+  <div id="tab-materials" class="tab-panel">
+    <div class="sec-title">教材・ブログ対応表</div>
+    <div class="sec-sub">学習テーマ・具体的教材・ブログ記事ネタの対応。</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>テーマ</th><th>具体的教材・資格</th><th>ブログ記事ネタ</th><th>時期</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag tag-purple">ロジカル思考</span></td>
+            <td class="book">「ロジカル・シンキング」照屋華子<br>「考える技術・書く技術」バーバラ・ミント</td>
+            <td class="blog-item">「MECE徹底解説」<br>「ピラミッド原則をシステム設計に活かす」</td>
+            <td><span class="tag tag-blue">2026 Q3</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-purple">クリティカル思考</span></td>
+            <td class="book">「クリティカル・シンキング」E.B.ゼックミスタ<br>「イシューからはじめよ」安宅和人</td>
+            <td class="blog-item">「要件定義で使えるクリティカル思考」<br>「なぜアーキテクトに論理的思考が必要か」</td>
+            <td><span class="tag tag-blue">2026 Q3</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-teal">PMP</span></td>
+            <td class="book">PMBOK第7版（公式）<br>「PMP完全合格テキスト」<br>Udemy：PMP試験対策コース<br>過去問アプリ</td>
+            <td class="blog-item">「PMBOKをエンジニアが読んで分かったこと」<br>「アジャイルPMとウォーターフォールの使い分け」</td>
+            <td><span class="tag tag-blue">2026 Q3〜Q4</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-purple">システム思考</span></td>
+            <td class="book">「学習する組織」ピーター・センゲ<br>「システム思考」ドネラ・メドウズ<br>「第五の規律」</td>
+            <td class="blog-item">「因果ループ図でシステム障害を分析する」<br>「組織の学習を止める阻害要因」</td>
+            <td><span class="tag tag-blue">2027 Q1</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">DDD</span></td>
+            <td class="book">「ドメイン駆動設計」エリック・エヴァンス<br>「実践ドメイン駆動設計」ヴォーン・ヴァーノン<br>「ドメイン駆動設計入門」成瀬允宣</td>
+            <td class="blog-item">「DDDを実プロジェクトに導入した話」<br>「集約境界の決め方」<br>「EventStormingワークショップ実践記」</td>
+            <td><span class="tag tag-blue">2027 Q1</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-teal">TOGAF</span></td>
+            <td class="book">TOGAF Standard 10th Edition（公式）<br>「エンタープライズ・アーキテクチャの教科書」<br>Open Group認定試験 Level 1+2</td>
+            <td class="blog-item">「TOGAFのADMを日本のSIerで使う」<br>「EA成熟度モデルで自社を評価する」</td>
+            <td><span class="tag tag-blue">2027 Q2</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-amber">会計・財務</span></td>
+            <td class="book">「財務3表一体理解法」國貞克則<br>「MBAアカウンティング」グロービス<br>日商簿記2級（テキスト＋過去問）</td>
+            <td class="blog-item">「エンジニアが読む財務諸表」<br>「ROIでアーキテクチャ改善を経営に説明する」</td>
+            <td><span class="tag tag-blue">2027 Q3</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-amber">事業戦略</span></td>
+            <td class="book">「競争の戦略」マイケル・ポーター<br>「MBAビジネス戦略」グロービス<br>「ストーリーとしての競争戦略」楠木建</td>
+            <td class="blog-item">「ポーターの5力でクラウド移行を評価する」<br>「技術戦略と事業戦略の接続」</td>
+            <td><span class="tag tag-blue">2027 Q3</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-blue">AIアーキテクチャ</span></td>
+            <td class="book">LangChain / LlamaIndex 公式ドキュメント<br>「RAGシステム設計」論文・Zenn記事<br>Anthropic / OpenAI Cookbook</td>
+            <td class="blog-item">「RAGシステムを本番運用した知見」<br>「MCPで社内ツールをAI化した」<br>「Agentの設計パターン比較」</td>
+            <td><span class="tag tag-blue">2027 Q4</span></td>
+          </tr>
+          <tr>
+            <td><span class="tag tag-coral">発信・執筆</span></td>
+            <td class="book">「理科系の作文技術」木下是雄<br>Zenn / note / Speaker Deck 活用</td>
+            <td class="blog-item">週1〜2本の継続更新（全テーマ横断）<br>登壇スライド公開・技術同人誌</td>
+            <td><span class="tag tag-blue">全期間</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ---- Skill data ----
+const SKILLS = [
+  { name: 'ロジカル/クリティカル思考', color: '#534AB7', target: 90 },
+  { name: 'PM / プロジェクト推進 (PMP)', color: '#1D9E75', target: 85 },
+  { name: 'システム思考・DDD',          color: '#D85A30', target: 85 },
+  { name: 'EA設計 (TOGAF)',             color: '#1D9E75', target: 80 },
+  { name: '会計・事業戦略',             color: '#BA7517', target: 75 },
+  { name: 'AIアーキテクチャ',           color: '#378ADD', target: 90 },
+  { name: '発信・執筆・教育',           color: '#D4537E', target: 85 },
+  { name: 'クラウド・インフラ設計',     color: '#534AB7', target: 80 },
+];
+const DEFAULTS = [60, 55, 45, 35, 30, 50, 40, 65];
+const LS_KEY = 'architect_skill_now_v1';
+
+function loadNow() {
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return [...DEFAULTS];
+}
+function saveNow(arr) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch(e) {}
+}
+
+let nowVals = loadNow();
+let editMode = false;
+let radarChart = null;
+
+// ---- Build skill slider rows ----
+function buildSliders() {
+  const box = document.getElementById('sliders-box');
+  SKILLS.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'skill-row';
+    row.innerHTML = `
+      <div class="skill-meta">
+        <span class="skill-name">${s.name}</span>
+        <span class="skill-vals" id="sv-${i}">現在 <b id="sv-now-${i}">${nowVals[i]}</b> → 目標 ${s.target}</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-target" style="width:${s.target}%; background:${s.color}"></div>
+        <div class="bar-now" id="bn-${i}" style="width:${nowVals[i]}%; background:${s.color}"></div>
+      </div>
+      <input type="range" class="skill-slider" id="sl-${i}" min="0" max="100" value="${nowVals[i]}" oninput="onSlider(${i},this.value)">
+    `;
+    box.appendChild(row);
+  });
+}
+
+function onSlider(i, v) {
+  v = parseInt(v);
+  nowVals[i] = v;
+  document.getElementById(`bn-${i}`).style.width = v + '%';
+  document.getElementById(`sv-now-${i}`).textContent = v;
+  updateRadar();
+  saveNow(nowVals);
+  const hint = document.getElementById('skill-save-hint');
+  hint.classList.add('show');
+  clearTimeout(hint._t);
+  hint._t = setTimeout(() => hint.classList.remove('show'), 2000);
+}
+
+function toggleEdit() {
+  editMode = !editMode;
+  document.getElementById('sliders-box').classList.toggle('edit-on', editMode);
+  const btn = document.getElementById('edit-btn');
+  btn.classList.toggle('on', editMode);
+  btn.textContent = editMode ? '✓ 編集完了' : '✏️ 現在値を編集する';
+}
+
+// ---- Radar chart ----
+function buildRadar() {
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const gc = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+  const tc = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)';
+  const lc = isDark ? '#c2c0b6' : '#3d3d3a';
+  const labels = SKILLS.map(s => s.name);
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [
+        { label: '2028年 目標', data: SKILLS.map(s => s.target),
+          borderColor: '#534AB7', backgroundColor: 'rgba(83,74,183,0.14)',
+          borderWidth: 2, pointBackgroundColor: '#534AB7', pointRadius: 4 },
+        { label: '現在', data: [...nowVals],
+          borderColor: '#9c9a92', backgroundColor: 'rgba(136,135,128,0.1)',
+          borderWidth: 1.5, pointBackgroundColor: '#9c9a92', pointRadius: 3,
+          borderDash: [4,3] }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { r: {
+        min: 0, max: 100,
+        ticks: { stepSize: 20, color: tc, font: { size: 10 }, backdropColor: 'transparent' },
+        grid: { color: gc }, angleLines: { color: gc },
+        pointLabels: { color: lc, font: { size: 11 } }
+      }}
+    }
+  });
+}
+
+function updateRadar() {
+  if (!radarChart) return;
+  radarChart.data.datasets[1].data = [...nowVals];
+  radarChart.update('none');
+}
+
+// ---- Tab switching ----
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ---- Init ----
+buildSliders();
+// Radar builds after Chart.js is ready (script is sync, so fine here)
+buildRadar();
+</script>
+
+<script src="https://unpkg.com/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
+<script>
+(function() {
+  const CONFIG = { userPoolId: 'ap-northeast-1_POOHFA8Mj', clientId: '6ci85kgv5kjf0o7t0bed5963hc', apiUrl: 'https://kfpyxsovf2.execute-api.ap-northeast-1.amazonaws.com/prod/' };
+  const userPool = new AmazonCognitoIdentity.CognitoUserPool({ UserPoolId: CONFIG.userPoolId, ClientId: CONFIG.clientId });
+
+  function getTodayJST() {
+    const jst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    return jst.toISOString().slice(0, 10);
+  }
+
+  const user = userPool.getCurrentUser();
+  if (!user) return;
+  user.getSession(async (err, session) => {
+    if (err || !session.isValid()) return;
+    const token = session.getIdToken().getJwtToken();
+    try {
+      const res = await fetch(`${CONFIG.apiUrl}/checkins/summary?date=${getTodayJST()}`,
+        { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      document.getElementById('dsc-streak').textContent = `🔥 ${data.streak}日連続`;
+      document.getElementById('dsc-week').textContent = `今週 ${Math.round(data.this_week_rate * 100)}%`;
+      document.getElementById('dsc-link').textContent = data.today_habits_done ? '確認する →' : '記録する →';
+      document.getElementById('daily-summary-card').style.display = 'flex';
+    } catch (e) { /* silent */ }
+  });
+})();
+</script>
+</body>
+</html>
