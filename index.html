@@ -576,7 +576,7 @@ buildRadar();
 <script src="https://unpkg.com/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
 <script>
 (function() {
-  const CONFIG = { userPoolId: 'ap-northeast-1_POOHFA8Mj', clientId: '6ci85kgv5kjf0o7t0bed5963hc', apiUrl: 'https://kfpyxsovf2.execute-api.ap-northeast-1.amazonaws.com/prod/' };
+  const CONFIG = { userPoolId: 'ap-northeast-1_POOHFA8Mj', clientId: '6ci85kgv5kjf0o7t0bed5963hc', apiUrl: 'https://kfpyxsovf2.execute-api.ap-northeast-1.amazonaws.com/prod' };
   const userPool = new AmazonCognitoIdentity.CognitoUserPool({ UserPoolId: CONFIG.userPoolId, ClientId: CONFIG.clientId });
 
   function getTodayJST() {
