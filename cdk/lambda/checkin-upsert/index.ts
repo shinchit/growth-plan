@@ -1,6 +1,7 @@
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import { createDocumentClient } from '../shared/dynamo';
+import { corsHeaders } from '../shared/cors';
 
 let client: DynamoDBDocumentClient;
 const TABLE_NAME = process.env.TABLE_NAME!;
@@ -28,7 +29,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
   return {
     statusCode: 200,
-    headers: { 'Content-Type': 'application/json' },
+    headers: corsHeaders,
     body: JSON.stringify({ ok: true }),
   };
 };
