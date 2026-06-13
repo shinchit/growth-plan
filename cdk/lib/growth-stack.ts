@@ -60,6 +60,8 @@ export class GrowthStack extends cdk.Stack {
     const settingsGet    = makeFn('SettingsGet',    'settings-get/index.ts');
     const settingsUpsert = makeFn('SettingsUpsert', 'settings-upsert/index.ts');
     const reminderSend   = makeFn('ReminderSend',   'reminder-send/index.ts');
+    const skillsGet      = makeFn('SkillsGet',      'skills-get/index.ts');
+    const skillsUpsert   = makeFn('SkillsUpsert',   'skills-upsert/index.ts');
 
     this.table.grantReadWriteData(checkinUpsert);
     this.table.grantReadData(checkinGet);
@@ -67,6 +69,8 @@ export class GrowthStack extends cdk.Stack {
     this.table.grantReadData(settingsGet);
     this.table.grantWriteData(settingsUpsert);
     this.table.grantReadData(reminderSend);
+    this.table.grantReadData(skillsGet);
+    this.table.grantWriteData(skillsUpsert);
 
     // SES send permission for reminder
     reminderSend.addToRolePolicy(new iam.PolicyStatement({
@@ -102,6 +106,10 @@ export class GrowthStack extends cdk.Stack {
     const settings = api.root.addResource('settings');
     settings.addMethod('GET', new apigateway.LambdaIntegration(settingsGet), authOpts);
     settings.addMethod('PUT', new apigateway.LambdaIntegration(settingsUpsert), authOpts);
+
+    const skills = api.root.addResource('skills');
+    skills.addMethod('GET', new apigateway.LambdaIntegration(skillsGet), authOpts);
+    skills.addMethod('PUT', new apigateway.LambdaIntegration(skillsUpsert), authOpts);
 
     // EventBridge rules (JST 6:00 = UTC 21:00, JST 18:00 = UTC 9:00)
     new events.Rule(this, 'ReminderMorning', {

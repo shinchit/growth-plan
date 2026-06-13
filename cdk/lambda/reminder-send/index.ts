@@ -14,6 +14,42 @@ interface Summary {
   checkinDays: number;
 }
 
+interface SkillScores {
+  logical: number; critical: number; reading: number;
+  ai: number; blog: number; system: number;
+}
+
+const defaultSkills: SkillScores = { logical: 0, critical: 0, reading: 0, ai: 0, blog: 0, system: 0 };
+
+async function fetchSkills(userId: string): Promise<SkillScores> {
+  const result = await dynamo.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key: { userId, date: 'skills' },
+  }));
+  return (result.Item?.scores as SkillScores) ?? defaultSkills;
+}
+
+function buildChartUrl(s: SkillScores): string {
+  const config = {
+    type: 'radar',
+    data: {
+      labels: ['ロジカル思考', 'クリティカル思考', '読書・知識整理', 'AI活用', 'ブログ執筆', 'システム思考'],
+      datasets: [{
+        data: [s.logical, s.critical, s.reading, s.ai, s.blog, s.system],
+        fill: true,
+        backgroundColor: 'rgba(83,74,183,0.2)',
+        borderColor: 'rgb(83,74,183)',
+        pointBackgroundColor: 'rgb(83,74,183)',
+      }],
+    },
+    options: {
+      legend: { display: false },
+      scale: { ticks: { min: 0, max: 5, stepSize: 1, display: false } },
+    },
+  };
+  return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(config))}&w=360&h=280&backgroundColor=white`;
+}
+
 async function fetchSummary(userId: string, today: string): Promise<Summary> {
   const fromDate = dateMinusDays(today, 30);
   const result = await dynamo.send(new QueryCommand({
@@ -51,7 +87,7 @@ async function fetchSummary(userId: string, today: string): Promise<Summary> {
   };
 }
 
-function buildHtml(s: Summary): string {
+function buildHtml(s: Summary, chartUrl: string): string {
   return `<!DOCTYPE html>
 <html lang="ja"><head><meta charset="UTF-8"></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#f5f4f0;margin:0;padding:20px">
@@ -86,7 +122,11 @@ function buildHtml(s: Summary): string {
         </td>
       </tr>
     </table>
-    <div style="margin-top:24px;text-align:center">
+    <div style="margin-top:20px;text-align:center">
+      <div style="font-size:12px;font-weight:600;color:#5a5a56;margin-bottom:8px">📈 スキルマップ</div>
+      <img src="${chartUrl}" width="360" height="280" alt="スキルマップ" style="max-width:100%;border-radius:8px">
+    </div>
+    <div style="margin-top:20px;text-align:center">
       <a href="https://growth.calm-pm-lab.com/daily.html"
          style="display:inline-block;background:#534AB7;color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:600">
         今日のチェックインを記録する →
@@ -125,14 +165,15 @@ export const handler = async (_event: unknown): Promise<void> => {
     if (checkin.Item) continue;
 
     try {
-      const summary = await fetchSummary(userId, today);
+      const [summary, skills] = await Promise.all([fetchSummary(userId, today), fetchSkills(userId)]);
+      const chartUrl = buildChartUrl(skills);
       await ses.send(new SendEmailCommand({
         Source: FROM_EMAIL,
         Destination: { ToAddresses: [reminder_email] },
         Message: {
           Subject: { Data: '【成長計画】今日のチェックインがまだです', Charset: 'UTF-8' },
           Body: {
-            Html: { Data: buildHtml(summary), Charset: 'UTF-8' },
+            Html: { Data: buildHtml(summary, chartUrl), Charset: 'UTF-8' },
             Text: {
               Data: `今日の習慣チェックを記録しましょう。\n\n🔥 連続記録: ${summary.streak}日\n📊 今週達成率: ${summary.weekPct}%\n📝 今月ブログ: ${summary.blogCount}本\n📅 今月記録: ${summary.checkinDays}日\n\nhttps://growth.calm-pm-lab.com/daily.html`,
               Charset: 'UTF-8',
