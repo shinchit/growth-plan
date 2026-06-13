@@ -6,7 +6,7 @@ import { corsHeaders } from '../shared/cors';
 let client: DynamoDBDocumentClient;
 const TABLE_NAME = process.env.TABLE_NAME!;
 
-const defaultScores = { logical: 0, critical: 0, reading: 0, ai: 0, blog: 0, system: 0 };
+const defaultScores: number[] = [60, 55, 45, 35, 30, 50, 40, 65];
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   client ??= createDocumentClient();

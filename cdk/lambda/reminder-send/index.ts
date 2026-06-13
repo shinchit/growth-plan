@@ -14,37 +14,48 @@ interface Summary {
   checkinDays: number;
 }
 
-interface SkillScores {
-  logical: number; critical: number; reading: number;
-  ai: number; blog: number; system: number;
-}
+const SKILL_LABELS = [
+  'ロジカル/クリティカル思考', 'PM/プロジェクト推進', 'システム思考・DDD',
+  'EA設計(TOGAF)', '会計・事業戦略', 'AIアーキテクチャ', '発信・執筆・教育', 'クラウド・インフラ設計',
+];
+const SKILL_TARGETS = [90, 85, 85, 80, 75, 90, 85, 80];
+const defaultSkills: number[] = [60, 55, 45, 35, 30, 50, 40, 65];
 
-const defaultSkills: SkillScores = { logical: 0, critical: 0, reading: 0, ai: 0, blog: 0, system: 0 };
-
-async function fetchSkills(userId: string): Promise<SkillScores> {
+async function fetchSkills(userId: string): Promise<number[]> {
   const result = await dynamo.send(new GetCommand({
     TableName: TABLE_NAME,
     Key: { userId, date: 'skills' },
   }));
-  return (result.Item?.scores as SkillScores) ?? defaultSkills;
+  return (result.Item?.scores as number[]) ?? defaultSkills;
 }
 
-function buildChartUrl(s: SkillScores): string {
+function buildChartUrl(scores: number[]): string {
   const config = {
     type: 'radar',
     data: {
-      labels: ['ロジカル思考', 'クリティカル思考', '読書・知識整理', 'AI活用', 'ブログ執筆', 'システム思考'],
-      datasets: [{
-        data: [s.logical, s.critical, s.reading, s.ai, s.blog, s.system],
-        fill: true,
-        backgroundColor: 'rgba(83,74,183,0.2)',
-        borderColor: 'rgb(83,74,183)',
-        pointBackgroundColor: 'rgb(83,74,183)',
-      }],
+      labels: SKILL_LABELS,
+      datasets: [
+        {
+          label: '現在',
+          data: scores,
+          fill: true,
+          backgroundColor: 'rgba(83,74,183,0.2)',
+          borderColor: 'rgb(83,74,183)',
+          pointBackgroundColor: 'rgb(83,74,183)',
+        },
+        {
+          label: '目標',
+          data: SKILL_TARGETS,
+          fill: false,
+          borderColor: 'rgba(216,90,48,0.6)',
+          borderDash: [5, 5],
+          pointRadius: 0,
+        },
+      ],
     },
     options: {
       legend: { display: false },
-      scale: { ticks: { min: 0, max: 5, stepSize: 1, display: false } },
+      scale: { ticks: { min: 0, max: 100, stepSize: 20, display: false } },
     },
   };
   return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(config))}&w=360&h=280&backgroundColor=white`;

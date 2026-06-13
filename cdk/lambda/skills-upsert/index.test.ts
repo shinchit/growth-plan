@@ -9,7 +9,7 @@ beforeEach(() => ddbMock.reset());
 test('saves skill scores with date="skills" as sort key', async () => {
   ddbMock.on(PutCommand).resolves({});
 
-  const scores = { logical: 4, critical: 3, reading: 3, ai: 5, blog: 2, system: 3 };
+  const scores = [70, 60, 55, 40, 35, 65, 50, 70];
   const event = {
     requestContext: { authorizer: { claims: { sub: 'user-123' } } },
     body: JSON.stringify(scores),

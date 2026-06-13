@@ -470,11 +470,20 @@ function loadNow() {
 }
 function saveNow(arr) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(arr)); } catch(e) {}
+  if (_apiToken && _apiUrl) {
+    fetch(_apiUrl + '/skills', {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${_apiToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(arr),
+    }).catch(() => {});
+  }
 }
 
 let nowVals = loadNow();
 let editMode = false;
 let radarChart = null;
+let _apiToken = null;
+let _apiUrl = null;
 
 // ---- Build skill slider rows ----
 function buildSliders() {
@@ -589,6 +598,27 @@ buildRadar();
   user.getSession(async (err, session) => {
     if (err || !session.isValid()) return;
     const token = session.getIdToken().getJwtToken();
+    _apiToken = token;
+    _apiUrl = CONFIG.apiUrl;
+
+    try {
+      const skillsRes = await fetch(`${CONFIG.apiUrl}/skills`, { headers: { Authorization: `Bearer ${token}` } });
+      const skillsData = await skillsRes.json();
+      if (Array.isArray(skillsData)) {
+        nowVals = skillsData;
+        try { localStorage.setItem(LS_KEY, JSON.stringify(nowVals)); } catch(e) {}
+        nowVals.forEach((v, i) => {
+          const sl = document.getElementById(`sl-${i}`);
+          const bn = document.getElementById(`bn-${i}`);
+          const sv = document.getElementById(`sv-now-${i}`);
+          if (sl) sl.value = v;
+          if (bn) bn.style.width = v + '%';
+          if (sv) sv.textContent = v;
+        });
+        updateRadar();
+      }
+    } catch (e) { /* silent */ }
+
     try {
       const res = await fetch(`${CONFIG.apiUrl}/checkins/summary?date=${getTodayJST()}`,
         { headers: { Authorization: `Bearer ${token}` } });
