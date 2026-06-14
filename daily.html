@@ -121,6 +121,7 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
     <button class="tab-btn active" onclick="switchTab('habits',this)">✅ 習慣</button>
     <button class="tab-btn" onclick="switchTab('record',this)">📝 記録</button>
     <button class="tab-btn" onclick="switchTab('reflect',this)">🔍 振り返り</button>
+    <button class="tab-btn" onclick="switchTab('ai',this)">✨ FB</button>
     <button class="tab-btn" onclick="switchTab('stats',this)">📊 統計</button>
     <button class="tab-btn" onclick="switchTab('config',this)">⚙️ 設定</button>
   </div>
@@ -163,12 +164,6 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
 
   <!-- 振り返りタブ -->
   <div id="tab-reflect" class="tab-panel">
-    <div id="feedback-loading" style="display:none;font-size:12px;color:var(--text3);text-align:center;padding:10px 0">✨ フィードバックを生成中...</div>
-    <div id="feedback-card" style="display:none;background:var(--bg2);border-radius:8px;padding:12px 14px;margin-bottom:16px;border-left:3px solid var(--purple)">
-      <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">✨ AIフィードバック</div>
-      <div id="feedback-text" style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap"></div>
-      <div id="feedback-time" style="font-size:10px;color:var(--text3);margin-top:6px"></div>
-    </div>
     <div class="field-label">💡 気づき・発見</div>
     <textarea id="f-insights" rows="3" placeholder="今日の学びで「これは使える」と思ったこと…" oninput="scheduleAutoSave()"></textarea>
     <div class="field-label">🧭 モチベーション・コンディション</div>
@@ -189,6 +184,19 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
     <div style="font-size:11px;color:var(--text3);margin-bottom:6px">ジャッジなし・テーマなし。思ったことをそのまま書く。</div>
     <textarea id="f-morning" rows="10" placeholder="今日感じていること、頭にあること、何でも…" oninput="scheduleAutoSave()" style="line-height:1.8"></textarea>
     <div class="save-status" id="reflect-status"></div>
+  </div>
+
+  <!-- AI FBタブ -->
+  <div id="tab-ai" class="tab-panel">
+    <div id="feedback-loading" style="display:none;font-size:12px;color:var(--text3);text-align:center;padding:20px 0">✨ フィードバックを生成中...</div>
+    <div id="feedback-card" style="display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">✨ 今日のアクション提案</div>
+      <div id="feedback-text" style="font-size:14px;color:var(--text);line-height:1.9;white-space:pre-wrap"></div>
+      <div id="feedback-time" style="font-size:10px;color:var(--text3);margin-top:10px"></div>
+    </div>
+    <div id="feedback-empty" style="font-size:13px;color:var(--text3);text-align:center;padding:32px 0;line-height:2">
+      記録・振り返りを入力すると<br>アクション提案が自動生成されます。
+    </div>
   </div>
 
   <!-- 統計タブ -->
@@ -437,6 +445,7 @@ async function requestFeedback() {
 function showFeedback(text, generatedAt) {
   document.getElementById('feedback-loading').style.display = 'none';
   if (!text) return;
+  document.getElementById('feedback-empty').style.display = 'none';
   const card = document.getElementById('feedback-card');
   card.style.display = 'block';
   document.getElementById('feedback-text').textContent = text;
