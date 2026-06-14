@@ -289,6 +289,7 @@ function shiftDate(delta) {
   if (next > getTodayJST()) return;
   currentDate = next;
   dataLoaded = false;
+  clearTimeout(feedbackTimer);
   updateDateHeader();
   loadCurrentDateData();
 }
@@ -471,6 +472,13 @@ function selectMood(mood, el) {
 
 // ── Load current date data ───────────────────────
 async function loadCurrentDateData() {
+  // Reset UI for the new date before fetching
+  selectedMood = '';
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('feedback-card').style.display = 'none';
+  document.getElementById('feedback-loading').style.display = 'none';
+  document.getElementById('feedback-empty').style.display = 'block';
+
   const draft = localStorage.getItem('habits_draft_' + currentDate);
   try {
     const data = await api('/checkins/' + currentDate);
