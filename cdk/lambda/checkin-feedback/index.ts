@@ -19,7 +19,13 @@ async function getApiKey(): Promise<string> {
 
 function buildPrompt(item: Record<string, unknown>): string {
   const parts: string[] = [
-    '以下は今日のチェックイン記録です。内容を読んで、価値中立的・コーチング的な視点から100〜200字程度の簡潔なフィードバックを日本語で返してください。評価や褒め言葉は不要です。気づきを深めるための問いかけや観察を中心にしてください。\n',
+    `以下は今日のチェックイン記録です。内容を読んで、明日以降の具体的なアクションにつながる提案を2〜3点、日本語で返してください。
+
+ルール：
+- 批評・評価・褒め言葉は一切不要
+- 「〜してみる」「〜を試す」「〜を確認する」など実行可能な動詞で締める
+- 1点につき1〜2文で簡潔に
+- 記録が少ない場合は記録されている内容だけをもとにする\n`,
   ];
   if (item.today_done)     parts.push(`【今日やったこと】\n${item.today_done}`);
   if (item.tomorrow_tasks) parts.push(`【明日やること】\n${item.tomorrow_tasks}`);
