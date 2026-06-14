@@ -1,6 +1,6 @@
 import { mockClient } from 'aws-sdk-client-mock';
 import 'aws-sdk-client-mock-jest';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { handler } from './index';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -14,8 +14,8 @@ function makeEvent(body: object) {
   } as any;
 }
 
-test('returns 200 and saves record with required fields', async () => {
-  ddbMock.on(PutCommand).resolves({});
+test('returns 200 and updates record with required fields', async () => {
+  ddbMock.on(UpdateCommand).resolves({});
 
   const result = await handler(makeEvent({
     date: '2026-06-11',
@@ -24,24 +24,25 @@ test('returns 200 and saves record with required fields', async () => {
 
   expect(result.statusCode).toBe(200);
   expect(JSON.parse(result.body)).toEqual({ ok: true });
-  expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
-    Item: expect.objectContaining({ userId: 'user-123', date: '2026-06-11' }),
+  expect(ddbMock).toHaveReceivedCommandWith(UpdateCommand, {
+    Key: { userId: 'user-123', date: '2026-06-11' },
   });
 });
 
-test('saves optional fields as empty strings/zero when omitted', async () => {
-  ddbMock.on(PutCommand).resolves({});
+test('defaults optional fields to empty when omitted', async () => {
+  ddbMock.on(UpdateCommand).resolves({});
 
   await handler(makeEvent({ date: '2026-06-11', habits: {} }), {} as any, {} as any);
 
-  expect(ddbMock).toHaveReceivedCommandWith(PutCommand, {
-    Item: expect.objectContaining({
-      today_done: '',
-      tomorrow_tasks: '',
-      blog_count: 0,
-      insights: '',
-      mood: '',
-      obstacles: '',
+  expect(ddbMock).toHaveReceivedCommandWith(UpdateCommand, {
+    ExpressionAttributeValues: expect.objectContaining({
+      ':done': '',
+      ':tomorrow': '',
+      ':blog': 0,
+      ':insights': '',
+      ':mood': '',
+      ':obstacles': '',
+      ':morning': '',
     }),
   });
 });
