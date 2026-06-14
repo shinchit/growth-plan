@@ -35,7 +35,7 @@ test('API Gateway is created', () => {
 });
 
 test('all Lambda functions exist', () => {
-  template.resourceCountIs('AWS::Lambda::Function', 8);
+  template.resourceCountIs('AWS::Lambda::Function', 9);
 });
 
 test('two EventBridge rules are created', () => {

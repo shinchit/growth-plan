@@ -163,6 +163,12 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
 
   <!-- 振り返りタブ -->
   <div id="tab-reflect" class="tab-panel">
+    <div id="feedback-loading" style="display:none;font-size:12px;color:var(--text3);text-align:center;padding:10px 0">✨ フィードバックを生成中...</div>
+    <div id="feedback-card" style="display:none;background:var(--bg2);border-radius:8px;padding:12px 14px;margin-bottom:16px;border-left:3px solid var(--purple)">
+      <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">✨ AIフィードバック</div>
+      <div id="feedback-text" style="font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap"></div>
+      <div id="feedback-time" style="font-size:10px;color:var(--text3);margin-top:6px"></div>
+    </div>
     <div class="field-label">💡 気づき・発見</div>
     <textarea id="f-insights" rows="3" placeholder="今日の学びで「これは使える」と思ったこと…" oninput="scheduleAutoSave()"></textarea>
     <div class="field-label">🧭 モチベーション・コンディション</div>
@@ -400,9 +406,41 @@ async function autoSave() {
       }),
     });
     statusEls.forEach(el => { el.textContent = '✓ 自動保存'; setTimeout(() => el.textContent='', 2000); });
+    scheduleFeedback();
   } catch (e) {
     statusEls.forEach(el => el.textContent = '保存に失敗しました');
   }
+}
+
+// ── AI Feedback ──────────────────────────────────
+let feedbackTimer = null;
+
+function scheduleFeedback() {
+  clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(requestFeedback, 3000);
+}
+
+async function requestFeedback() {
+  document.getElementById('feedback-loading').style.display = 'block';
+  document.getElementById('feedback-card').style.display = 'none';
+  try {
+    const data = await api(`/checkins/${currentDate}/feedback`, { method: 'POST' });
+    showFeedback(data.feedback, data.generated_at);
+  } catch (e) {
+    document.getElementById('feedback-loading').style.display = 'none';
+  }
+}
+
+function showFeedback(text, generatedAt) {
+  document.getElementById('feedback-loading').style.display = 'none';
+  if (!text) return;
+  const card = document.getElementById('feedback-card');
+  card.style.display = 'block';
+  document.getElementById('feedback-text').textContent = text;
+  const t = new Date(generatedAt);
+  const hh = t.getHours().toString().padStart(2, '0');
+  const mm = t.getMinutes().toString().padStart(2, '0');
+  document.getElementById('feedback-time').textContent = `${hh}:${mm} 生成`;
 }
 
 // ── Reflect Tab ─────────────────────────────────
@@ -429,6 +467,9 @@ async function loadCurrentDateData() {
         document.getElementById('f-insights').value = data.insights ?? '';
         document.getElementById('f-obstacles').value = data.obstacles ?? '';
         document.getElementById('f-morning').value = data.morning ?? '';
+        if (data.ai_feedback?.text) {
+          showFeedback(data.ai_feedback.text, data.ai_feedback.generated_at);
+        }
         if (data.mood) {
           selectedMood = data.mood;
           document.querySelectorAll('.mood-btn').forEach(b => {

@@ -54,14 +54,21 @@ export class GrowthStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(10),
       });
 
-    const checkinUpsert  = makeFn('CheckinUpsert',  'checkin-upsert/index.ts');
-    const checkinGet     = makeFn('CheckinGet',     'checkin-get/index.ts');
-    const summaryGet     = makeFn('SummaryGet',     'summary-get/index.ts');
-    const settingsGet    = makeFn('SettingsGet',    'settings-get/index.ts');
-    const settingsUpsert = makeFn('SettingsUpsert', 'settings-upsert/index.ts');
-    const reminderSend   = makeFn('ReminderSend',   'reminder-send/index.ts');
-    const skillsGet      = makeFn('SkillsGet',      'skills-get/index.ts');
-    const skillsUpsert   = makeFn('SkillsUpsert',   'skills-upsert/index.ts');
+    const checkinUpsert   = makeFn('CheckinUpsert',   'checkin-upsert/index.ts');
+    const checkinGet      = makeFn('CheckinGet',      'checkin-get/index.ts');
+    const summaryGet      = makeFn('SummaryGet',      'summary-get/index.ts');
+    const settingsGet     = makeFn('SettingsGet',     'settings-get/index.ts');
+    const settingsUpsert  = makeFn('SettingsUpsert',  'settings-upsert/index.ts');
+    const reminderSend    = makeFn('ReminderSend',    'reminder-send/index.ts');
+    const skillsGet       = makeFn('SkillsGet',       'skills-get/index.ts');
+    const skillsUpsert    = makeFn('SkillsUpsert',    'skills-upsert/index.ts');
+    const checkinFeedback = new nodejsLambda.NodejsFunction(this, 'CheckinFeedback', {
+      entry: path.join(lambdaDir, 'checkin-feedback/index.ts'),
+      handler: 'handler',
+      runtime: lambda.Runtime.NODEJS_22_X,
+      environment: commonEnv,
+      timeout: cdk.Duration.seconds(30),
+    });
 
     this.table.grantReadWriteData(checkinUpsert);
     this.table.grantReadData(checkinGet);
@@ -71,6 +78,11 @@ export class GrowthStack extends cdk.Stack {
     this.table.grantReadData(reminderSend);
     this.table.grantReadData(skillsGet);
     this.table.grantWriteData(skillsUpsert);
+    this.table.grantReadWriteData(checkinFeedback);
+    checkinFeedback.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: [`arn:aws:ssm:${this.region}:${this.account}:parameter/growth-plan/anthropic-api-key`],
+    }));
 
     // SES send permission for reminder
     reminderSend.addToRolePolicy(new iam.PolicyStatement({
@@ -100,6 +112,8 @@ export class GrowthStack extends cdk.Stack {
     checkins.addMethod('POST', new apigateway.LambdaIntegration(checkinUpsert), authOpts);
     const checkinDate = checkins.addResource('{date}');
     checkinDate.addMethod('GET', new apigateway.LambdaIntegration(checkinGet), authOpts);
+    const checkinFeedbackRes = checkinDate.addResource('feedback');
+    checkinFeedbackRes.addMethod('POST', new apigateway.LambdaIntegration(checkinFeedback), authOpts);
     const summary = checkins.addResource('summary');
     summary.addMethod('GET', new apigateway.LambdaIntegration(summaryGet), authOpts);
 
