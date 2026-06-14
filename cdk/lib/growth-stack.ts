@@ -121,6 +121,22 @@ export class GrowthStack extends cdk.Stack {
       targets: [new targets.LambdaFunction(reminderSend)],
     });
 
+    // Ensure CORS headers on API Gateway-level error responses (e.g. 401 from Cognito authorizer)
+    const gwCorsHeaders = {
+      'Access-Control-Allow-Origin': "'https://growth.calm-pm-lab.com'",
+      'Access-Control-Allow-Headers': "'Authorization,Content-Type'",
+    };
+    new apigateway.GatewayResponse(this, 'Gw4xx', {
+      restApi: api,
+      type: apigateway.ResponseType.DEFAULT_4XX,
+      responseHeaders: gwCorsHeaders,
+    });
+    new apigateway.GatewayResponse(this, 'Gw5xx', {
+      restApi: api,
+      type: apigateway.ResponseType.DEFAULT_5XX,
+      responseHeaders: gwCorsHeaders,
+    });
+
     // Outputs
     new cdk.CfnOutput(this, 'UserPoolId', { value: this.userPool.userPoolId });
     new cdk.CfnOutput(this, 'UserPoolClientId', { value: this.userPoolClient.userPoolClientId });
