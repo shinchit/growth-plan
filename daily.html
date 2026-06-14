@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>デイリーチェックイン</title>
+<script src="https://cdn.jsdelivr.net/npm/marked@13/marked.min.js"></script>
 <script src="https://unpkg.com/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
 <style>
 :root {
@@ -80,6 +81,11 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
 .toggle-row:last-child { border-bottom: none; }
 .toggle-label { font-size: 13px; }
 .toggle-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
+#feedback-text ul, #feedback-text ol { padding-left: 1.4em; margin: 6px 0; }
+#feedback-text li { margin-bottom: 6px; }
+#feedback-text p { margin: 0 0 8px; }
+#feedback-text p:last-child { margin-bottom: 0; }
+#feedback-text strong { font-weight: 700; }
 </style>
 </head>
 <body>
@@ -191,7 +197,7 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
     <div id="feedback-loading" style="display:none;font-size:12px;color:var(--text3);text-align:center;padding:20px 0">✨ フィードバックを生成中...</div>
     <div id="feedback-card" style="display:none">
       <div style="font-size:11px;font-weight:700;color:var(--purple);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">✨ 今日のアクション提案</div>
-      <div id="feedback-text" style="font-size:14px;color:var(--text);line-height:1.9;white-space:pre-wrap"></div>
+      <div id="feedback-text" style="font-size:14px;color:var(--text);line-height:1.9"></div>
       <div id="feedback-time" style="font-size:10px;color:var(--text3);margin-top:10px"></div>
     </div>
     <div id="feedback-empty" style="font-size:13px;color:var(--text3);text-align:center;padding:32px 0;line-height:2">
@@ -448,7 +454,7 @@ function showFeedback(text, generatedAt) {
   document.getElementById('feedback-empty').style.display = 'none';
   const card = document.getElementById('feedback-card');
   card.style.display = 'block';
-  document.getElementById('feedback-text').textContent = text;
+  document.getElementById('feedback-text').innerHTML = marked.parse(text);
   const t = new Date(generatedAt);
   const hh = t.getHours().toString().padStart(2, '0');
   const mm = t.getMinutes().toString().padStart(2, '0');
