@@ -251,6 +251,7 @@ let currentUser = null;
 let idToken = null;
 let currentDate = getTodayJST();
 let selectedMood = '';
+let dataLoaded = false;
 
 function getTodayJST() {
   const now = new Date();
@@ -273,6 +274,7 @@ function shiftDate(delta) {
   const next = d.toISOString().slice(0, 10);
   if (next > getTodayJST()) return;
   currentDate = next;
+  dataLoaded = false;
   updateDateHeader();
   loadCurrentDateData();
 }
@@ -388,6 +390,7 @@ function scheduleAutoSave() {
 }
 
 async function autoSave() {
+  if (!dataLoaded) return;
   const statusEls = document.querySelectorAll('.save-status');
   statusEls.forEach(el => el.textContent = '保存中...');
   try {
@@ -485,6 +488,7 @@ async function loadCurrentDateData() {
   } catch (e) {
     if (draft) setHabits(JSON.parse(draft));
   }
+  dataLoaded = true;
 }
 
 // ── Stats Tab ────────────────────────────────────
