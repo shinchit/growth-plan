@@ -23,6 +23,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       insights: body.insights ?? '',
       mood: body.mood ?? '',
       obstacles: body.obstacles ?? '',
+      morning: body.morning ?? '',
       updated_at: new Date().toISOString(),
     },
   }));
