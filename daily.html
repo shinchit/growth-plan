@@ -179,6 +179,9 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
     </style>
     <div class="field-label">🚧 障害・困っていること</div>
     <textarea id="f-obstacles" rows="2" placeholder="時間確保が難しかった、など…" oninput="scheduleAutoSave()"></textarea>
+    <div class="field-label" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">📓 モーニングページ</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">ジャッジなし・テーマなし。思ったことをそのまま書く。</div>
+    <textarea id="f-morning" rows="10" placeholder="今日感じていること、頭にあること、何でも…" oninput="scheduleAutoSave()" style="line-height:1.8"></textarea>
     <div class="save-status" id="reflect-status"></div>
   </div>
 
@@ -393,6 +396,7 @@ async function autoSave() {
         insights: document.getElementById('f-insights')?.value ?? '',
         mood: selectedMood,
         obstacles: document.getElementById('f-obstacles')?.value ?? '',
+        morning: document.getElementById('f-morning')?.value ?? '',
       }),
     });
     statusEls.forEach(el => { el.textContent = '✓ 自動保存'; setTimeout(() => el.textContent='', 2000); });
@@ -424,6 +428,7 @@ async function loadCurrentDateData() {
       if (document.getElementById('f-insights')) {
         document.getElementById('f-insights').value = data.insights ?? '';
         document.getElementById('f-obstacles').value = data.obstacles ?? '';
+        document.getElementById('f-morning').value = data.morning ?? '';
         if (data.mood) {
           selectedMood = data.mood;
           document.querySelectorAll('.mood-btn').forEach(b => {
