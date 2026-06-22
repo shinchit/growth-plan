@@ -183,8 +183,14 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
         </select>
       </div>
     </div>
-    <!-- ビュー切替 -->
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <!-- ビュー切替 / 引き継ぎ -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div id="carry-forward-row" style="display:none;align-items:center;gap:8px">
+        <button onclick="carryForwardTasks()"
+                style="font-size:12px;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer">← 昨日の未完了を引き継ぐ</button>
+        <span id="carry-status" style="font-size:11px;color:var(--text3)"></span>
+      </div>
+      <div style="flex:1"></div>
       <button id="task-view-btn" onclick="toggleTaskView()">📅 タイムライン</button>
     </div>
     <!-- リストビュー -->
@@ -521,6 +527,43 @@ async function autoSave() {
 
 // ── Tasks Tab ────────────────────────────────────
 let dailyTasks = [];
+
+function prevDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+async function carryForwardTasks() {
+  const statusEl = document.getElementById('carry-status');
+  statusEl.textContent = '読み込み中...';
+  try {
+    const data = await api('/checkins/' + prevDate(currentDate));
+    const incomplete = (data?.daily_tasks ?? []).filter(t => !t.done);
+    if (!incomplete.length) {
+      statusEl.textContent = '昨日の未完了タスクはありません';
+      setTimeout(() => statusEl.textContent = '', 2500);
+      return;
+    }
+    let added = 0;
+    for (const t of incomplete) {
+      if (!dailyTasks.some(d => d.text === t.text)) {
+        dailyTasks.push({ text: t.text, start_time: t.start_time || '', duration: t.duration || 30, done: false });
+        added++;
+      }
+    }
+    if (added > 0) {
+      renderTasks();
+      await saveTasks();
+      statusEl.textContent = `${added}件を引き継ぎました`;
+    } else {
+      statusEl.textContent = '引き継ぐ新しいタスクはありません';
+    }
+    setTimeout(() => statusEl.textContent = '', 2500);
+  } catch (e) {
+    statusEl.textContent = '引き継ぎに失敗しました';
+  }
+}
 
 function fmtMin(m) {
   return m >= 60 ? `${Math.floor(m / 60)}h${m % 60 > 0 ? (m % 60) + 'm' : ''}` : `${m}m`;
@@ -920,6 +963,8 @@ async function loadCurrentDateData() {
   dailyTasks = [];
   updateAddBtnState();
   renderTasks();
+  const carryRow = document.getElementById('carry-forward-row');
+  if (carryRow) carryRow.style.display = currentDate === getTodayJST() ? 'flex' : 'none';
 
   const draft = localStorage.getItem('habits_draft_' + currentDate);
   try {
