@@ -126,6 +126,7 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
 
   <div class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('habits',this)">✅ 習慣</button>
+    <button class="tab-btn" onclick="switchTab('tasks',this)">📋 タスク</button>
     <button class="tab-btn" onclick="switchTab('record',this)">📝 記録</button>
     <button class="tab-btn" onclick="switchTab('reflect',this)">🔍 振り返り</button>
     <button class="tab-btn" onclick="switchTab('ai',this)">✨ FB</button>
@@ -151,6 +152,28 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
       <span class="habit-name">システム思考の振り返り</span><span class="habit-freq">週1回</span></label>
     <button class="btn-save" onclick="saveHabits()">保存して次へ →</button>
     <div class="save-status" id="habits-status"></div>
+  </div>
+
+  <!-- タスクタブ -->
+  <div id="tab-tasks" class="tab-panel">
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+      <input type="text" id="new-task-text" placeholder="タスクを入力..."
+             style="flex:1;min-width:140px;border:1px solid var(--border2);border-radius:7px;padding:9px 10px;font-size:13px;background:var(--bg2);color:var(--text)"
+             onkeydown="if(event.key==='Enter')addTask()">
+      <input type="time" id="new-task-time"
+             style="width:90px;border:1px solid var(--border2);border-radius:7px;padding:9px 6px;font-size:13px;background:var(--bg2);color:var(--text)">
+      <input type="number" id="new-task-min" min="5" max="480" step="5" value="30"
+             style="width:52px;border:1px solid var(--border2);border-radius:7px;padding:9px 4px;font-size:13px;text-align:center;background:var(--bg2);color:var(--text)">
+      <span style="font-size:12px;color:var(--text2);white-space:nowrap">分</span>
+      <button onclick="addTask()"
+              style="background:var(--purple);color:#fff;border:none;border-radius:7px;width:36px;height:36px;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
+    </div>
+    <div id="task-list"></div>
+    <div id="task-empty" style="font-size:13px;color:var(--text3);text-align:center;padding:24px 0;line-height:2">
+      今日の予定タスクを追加しましょう。
+    </div>
+    <div id="task-summary" style="font-size:12px;color:var(--text3);text-align:right;margin-top:4px;min-height:16px"></div>
+    <div class="save-status" id="tasks-status"></div>
   </div>
 
   <!-- 記録タブ -->
@@ -431,6 +454,90 @@ async function autoSave() {
   }
 }
 
+// ── Tasks Tab ────────────────────────────────────
+let dailyTasks = [];
+
+function fmtMin(m) {
+  return m >= 60 ? `${Math.floor(m / 60)}h${m % 60 > 0 ? (m % 60) + 'm' : ''}` : `${m}m`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderTasks() {
+  const list = document.getElementById('task-list');
+  const empty = document.getElementById('task-empty');
+  const summary = document.getElementById('task-summary');
+  list.innerHTML = '';
+  empty.style.display = dailyTasks.length ? 'none' : 'block';
+
+  dailyTasks.forEach((task, i) => {
+    const el = document.createElement('label');
+    el.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:10px 12px;margin-bottom:6px;cursor:pointer';
+    const timeBadge = task.start_time
+      ? `<span style="font-size:11px;color:var(--text3);background:var(--bg2);border-radius:4px;padding:2px 7px;flex-shrink:0">${escHtml(task.start_time)}</span>`
+      : '';
+    el.innerHTML = `
+      <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${i})"
+             style="width:16px;height:16px;accent-color:var(--purple);flex-shrink:0">
+      <span style="flex:1;font-size:13px;${task.done ? 'text-decoration:line-through;color:var(--text3)' : ''}">${escHtml(task.text)}</span>
+      ${timeBadge}
+      <span style="font-size:11px;color:var(--text3);background:var(--bg2);border-radius:4px;padding:2px 7px;flex-shrink:0">${task.duration}分</span>
+      <button onclick="event.preventDefault();deleteTask(${i})"
+              style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:17px;line-height:1;padding:0;flex-shrink:0">×</button>`;
+    list.appendChild(el);
+  });
+
+  if (dailyTasks.length) {
+    const total = dailyTasks.reduce((s, t) => s + t.duration, 0);
+    const done  = dailyTasks.filter(t => t.done).reduce((s, t) => s + t.duration, 0);
+    summary.textContent = `計画 ${fmtMin(total)}　完了 ${fmtMin(done)}`;
+  } else {
+    summary.textContent = '';
+  }
+}
+
+function addTask() {
+  const textEl = document.getElementById('new-task-text');
+  const timeEl = document.getElementById('new-task-time');
+  const minEl  = document.getElementById('new-task-min');
+  const text = textEl.value.trim();
+  if (!text) return;
+  dailyTasks.push({ text, start_time: timeEl.value || '', duration: parseInt(minEl.value, 10) || 30, done: false });
+  textEl.value = '';
+  timeEl.value = '';
+  renderTasks();
+  saveTasks();
+}
+
+function toggleTask(i) {
+  dailyTasks[i].done = !dailyTasks[i].done;
+  renderTasks();
+  saveTasks();
+}
+
+function deleteTask(i) {
+  dailyTasks.splice(i, 1);
+  renderTasks();
+  saveTasks();
+}
+
+async function saveTasks() {
+  if (!dataLoaded) return;
+  const status = document.getElementById('tasks-status');
+  try {
+    await api('/checkins', {
+      method: 'POST',
+      body: JSON.stringify({ date: currentDate, daily_tasks: dailyTasks }),
+    });
+    status.textContent = '✓ 保存';
+    setTimeout(() => status.textContent = '', 1500);
+  } catch (e) {
+    status.textContent = '保存に失敗しました';
+  }
+}
+
 // ── AI Feedback ──────────────────────────────────
 let feedbackTimer = null;
 
@@ -479,6 +586,8 @@ async function loadCurrentDateData() {
   document.getElementById('feedback-card').style.display = 'none';
   document.getElementById('feedback-loading').style.display = 'none';
   document.getElementById('feedback-empty').style.display = 'block';
+  dailyTasks = [];
+  renderTasks();
 
   const draft = localStorage.getItem('habits_draft_' + currentDate);
   try {
@@ -489,6 +598,10 @@ async function loadCurrentDateData() {
         document.getElementById('f-today-done').value = data.today_done ?? '';
         document.getElementById('f-tomorrow-tasks').value = data.tomorrow_tasks ?? '';
         document.getElementById('f-blog-count').value = data.blog_count ?? 0;
+      }
+      if (Array.isArray(data.daily_tasks)) {
+        dailyTasks = data.daily_tasks;
+        renderTasks();
       }
       if (document.getElementById('f-insights')) {
         document.getElementById('f-insights').value = data.insights ?? '';
