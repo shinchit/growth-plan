@@ -21,6 +21,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     body: JSON.stringify({
       reminder_enabled: result.Item?.reminder_enabled ?? false,
       reminder_email: result.Item?.reminder_email ?? '',
+      recurring_tasks: result.Item?.recurring_tasks ?? [],
     }),
   };
 };
