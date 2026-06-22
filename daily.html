@@ -87,6 +87,8 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
 #feedback-text p { margin: 0 0 8px; }
 #feedback-text p:last-child { margin-bottom: 0; }
 #feedback-text strong { font-weight: 700; }
+#task-view-btn { font-size: 12px; background: var(--bg2); color: var(--text2); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.recur-badge { font-size: 10px; background: var(--teal-l); color: var(--teal); border-radius: 4px; padding: 1px 6px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -125,13 +127,13 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
   </div>
 
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab('habits',this)">✅ 習慣</button>
-    <button class="tab-btn" onclick="switchTab('tasks',this)">📋 タスク</button>
-    <button class="tab-btn" onclick="switchTab('record',this)">📝 記録</button>
-    <button class="tab-btn" onclick="switchTab('reflect',this)">🔍 振り返り</button>
-    <button class="tab-btn" onclick="switchTab('ai',this)">✨ FB</button>
-    <button class="tab-btn" onclick="switchTab('stats',this)">📊 統計</button>
-    <button class="tab-btn" onclick="switchTab('config',this)">⚙️ 設定</button>
+    <button id="tab-btn-habits" class="tab-btn active" onclick="switchTab('habits',this)">✅ 習慣</button>
+    <button id="tab-btn-tasks" class="tab-btn" onclick="switchTab('tasks',this)">📋 タスク</button>
+    <button id="tab-btn-record" class="tab-btn" onclick="switchTab('record',this)">📝 記録</button>
+    <button id="tab-btn-reflect" class="tab-btn" onclick="switchTab('reflect',this)">🔍 振り返り</button>
+    <button id="tab-btn-ai" class="tab-btn" onclick="switchTab('ai',this)">✨ FB</button>
+    <button id="tab-btn-stats" class="tab-btn" onclick="switchTab('stats',this)">📊 統計</button>
+    <button id="tab-btn-config" class="tab-btn" onclick="switchTab('config',this)">⚙️ 設定</button>
   </div>
 
   <!-- 習慣タブ -->
@@ -156,23 +158,48 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
 
   <!-- タスクタブ -->
   <div id="tab-tasks" class="tab-panel">
-    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-      <input type="text" id="new-task-text" placeholder="タスクを入力..."
-             style="flex:1;min-width:140px;border:1px solid var(--border2);border-radius:7px;padding:9px 10px;font-size:13px;background:var(--bg2);color:var(--text)"
-             onkeydown="if(event.key==='Enter')addTask()">
-      <input type="time" id="new-task-time"
-             style="width:90px;border:1px solid var(--border2);border-radius:7px;padding:9px 6px;font-size:13px;background:var(--bg2);color:var(--text)">
-      <input type="number" id="new-task-min" min="5" max="480" step="5" value="30"
-             style="width:52px;border:1px solid var(--border2);border-radius:7px;padding:9px 4px;font-size:13px;text-align:center;background:var(--bg2);color:var(--text)">
-      <span style="font-size:12px;color:var(--text2);white-space:nowrap">分</span>
-      <button onclick="addTask()"
-              style="background:var(--purple);color:#fff;border:none;border-radius:7px;width:36px;height:36px;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
+    <!-- 追加フォーム -->
+    <div style="margin-bottom:12px">
+      <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap">
+        <input type="text" id="new-task-text" placeholder="タスクを入力..."
+               style="flex:1;min-width:140px;border:1px solid var(--border2);border-radius:7px;padding:9px 10px;font-size:13px;background:var(--bg2);color:var(--text)">
+        <input type="time" id="new-task-time"
+               style="width:90px;border:1px solid var(--border2);border-radius:7px;padding:9px 6px;font-size:13px;background:var(--bg2);color:var(--text)">
+        <input type="number" id="new-task-min" min="5" max="480" step="5" value="30"
+               style="width:52px;border:1px solid var(--border2);border-radius:7px;padding:9px 4px;font-size:13px;text-align:center;background:var(--bg2);color:var(--text)">
+        <span style="font-size:12px;color:var(--text2);white-space:nowrap">分</span>
+        <button id="task-add-btn" onclick="addTask()"
+                style="background:var(--purple);color:#fff;border:none;border-radius:7px;width:36px;height:36px;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
+        <button id="task-cancel-btn" onclick="cancelEdit()"
+                style="display:none;background:var(--bg2);color:var(--text2);border:1px solid var(--border);border-radius:7px;width:36px;height:36px;font-size:16px;cursor:pointer;flex-shrink:0;align-items:center;justify-content:center">✕</button>
+      </div>
+      <div id="task-recur-row" style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:12px;color:var(--text2)">繰り返し</span>
+        <select id="new-task-recur" style="border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px;background:var(--bg2);color:var(--text)">
+          <option value="">なし</option>
+          <option value="daily">毎日</option>
+          <option value="weekly">毎週</option>
+          <option value="monthly">毎月</option>
+        </select>
+      </div>
     </div>
-    <div id="task-list"></div>
-    <div id="task-empty" style="font-size:13px;color:var(--text3);text-align:center;padding:24px 0;line-height:2">
-      今日の予定タスクを追加しましょう。
+    <!-- ビュー切替 -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+      <button id="task-view-btn" onclick="toggleTaskView()">📅 タイムライン</button>
     </div>
-    <div id="task-summary" style="font-size:12px;color:var(--text3);text-align:right;margin-top:4px;min-height:16px"></div>
+    <!-- リストビュー -->
+    <div id="task-list-view">
+      <div id="task-list"></div>
+      <div id="task-empty" style="font-size:13px;color:var(--text3);text-align:center;padding:24px 0;line-height:2">
+        今日の予定タスクを追加しましょう。
+      </div>
+      <div id="task-summary" style="font-size:12px;color:var(--text3);text-align:right;margin-top:4px;min-height:16px"></div>
+    </div>
+    <!-- タイムラインビュー -->
+    <div id="task-timeline-view" style="display:none">
+      <div id="task-timeline"></div>
+      <div id="timeline-no-time" style="margin-top:12px"></div>
+    </div>
     <div class="save-status" id="tasks-status"></div>
   </div>
 
@@ -265,6 +292,26 @@ textarea { width: 100%; border: 1px solid var(--border); border-radius: 7px; pad
            oninput="scheduleSettingsSave()">
     <div class="save-status" id="config-status"></div>
 
+    <div class="section-label" style="margin-top:24px">繰り返しタスク</div>
+    <div id="recurring-list" style="margin-bottom:12px"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+      <input type="text" id="rec-text" placeholder="タスク名..."
+             style="flex:1;min-width:120px;border:1px solid var(--border2);border-radius:7px;padding:8px 10px;font-size:13px;background:var(--bg2);color:var(--text)">
+      <input type="time" id="rec-time"
+             style="width:85px;border:1px solid var(--border2);border-radius:7px;padding:8px 6px;font-size:13px;background:var(--bg2);color:var(--text)">
+      <input type="number" id="rec-min" min="5" max="480" step="5" value="30"
+             style="width:52px;border:1px solid var(--border2);border-radius:7px;padding:8px 4px;font-size:13px;text-align:center;background:var(--bg2);color:var(--text)">
+      <span style="font-size:12px;color:var(--text2)">分</span>
+      <select id="rec-recur" style="border:1px solid var(--border2);border-radius:7px;padding:8px 6px;font-size:13px;background:var(--bg2);color:var(--text)">
+        <option value="daily">毎日</option>
+        <option value="weekly">毎週</option>
+        <option value="monthly">毎月</option>
+      </select>
+      <button onclick="addRecurringTask()"
+              style="background:var(--purple);color:#fff;border:none;border-radius:7px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer">追加</button>
+    </div>
+    <div class="save-status" id="recurring-status"></div>
+
     <div class="section-label" style="margin-top:24px">スキルマップ（月次更新）</div>
     <div id="skill-sliders" style="display:flex;flex-direction:column;gap:10px"></div>
     <button class="btn-save" style="margin-top:12px" onclick="saveSkills()">スキルを保存</button>
@@ -290,6 +337,11 @@ let idToken = null;
 let currentDate = getTodayJST();
 let selectedMood = '';
 let dataLoaded = false;
+let composing = false;
+let editingIndex = null;
+let taskViewMode = 'list';
+let recurringTasks = [];
+const RECUR_LABELS = { daily: '毎日', weekly: '毎週', monthly: '毎月' };
 
 function getTodayJST() {
   const now = new Date();
@@ -335,6 +387,11 @@ async function api(path, options = {}) {
 }
 
 window.addEventListener('load', () => {
+  const taskTextEl = document.getElementById('new-task-text');
+  taskTextEl.addEventListener('compositionstart', () => { composing = true; });
+  taskTextEl.addEventListener('compositionend',   () => { composing = false; });
+  taskTextEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !composing) addTask(); });
+
   const user = userPool.getCurrentUser();
   if (!user) return;
   user.getSession((err, session) => {
@@ -345,12 +402,20 @@ window.addEventListener('load', () => {
   });
 });
 
-function showApp() {
+async function showApp() {
   document.getElementById('login-view').style.display = 'none';
   document.getElementById('app-view').style.display = 'block';
   updateDateHeader();
+  await loadInitialSettings();
   loadCurrentDateData();
   loadSummaryBadge();
+}
+
+async function loadInitialSettings() {
+  try {
+    const data = await api('/settings');
+    recurringTasks = Array.isArray(data.recurring_tasks) ? data.recurring_tasks : [];
+  } catch (e) { /* silent */ }
 }
 
 function login() {
@@ -413,7 +478,7 @@ async function saveHabits() {
     await loadSummaryBadge();
     setTimeout(() => {
       status.textContent = '';
-      switchTab('record', document.querySelector('.tab-btn:nth-child(2)'));
+      switchTab('tasks', document.getElementById('tab-btn-tasks'));
     }, 800);
   } catch (e) {
     status.textContent = '保存に失敗しました。再試行してください。';
@@ -465,6 +530,12 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function toMins(timeStr) {
+  if (!timeStr) return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
 function renderTasks() {
   const list = document.getElementById('task-list');
   const empty = document.getElementById('task-empty');
@@ -473,18 +544,23 @@ function renderTasks() {
   empty.style.display = dailyTasks.length ? 'none' : 'block';
 
   dailyTasks.forEach((task, i) => {
-    const el = document.createElement('label');
-    el.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:10px 12px;margin-bottom:6px;cursor:pointer';
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:10px 12px;margin-bottom:6px';
     const timeBadge = task.start_time
       ? `<span style="font-size:11px;color:var(--text3);background:var(--bg2);border-radius:4px;padding:2px 7px;flex-shrink:0">${escHtml(task.start_time)}</span>`
       : '';
+    const recurBadge = task.template_id ? '<span class="recur-badge">繰返</span>' : '';
+    const isEditing = editingIndex === i;
     el.innerHTML = `
       <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${i})"
-             style="width:16px;height:16px;accent-color:var(--purple);flex-shrink:0">
+             style="width:16px;height:16px;accent-color:var(--purple);flex-shrink:0;cursor:pointer">
       <span style="flex:1;font-size:13px;${task.done ? 'text-decoration:line-through;color:var(--text3)' : ''}">${escHtml(task.text)}</span>
+      ${recurBadge}
       ${timeBadge}
       <span style="font-size:11px;color:var(--text3);background:var(--bg2);border-radius:4px;padding:2px 7px;flex-shrink:0">${task.duration}分</span>
-      <button onclick="event.preventDefault();deleteTask(${i})"
+      <button onclick="editTask(${i})"
+              style="background:none;border:none;color:${isEditing ? 'var(--purple)' : 'var(--text3)'};cursor:pointer;font-size:15px;line-height:1;padding:2px;flex-shrink:0">✎</button>
+      <button onclick="deleteTask(${i})"
               style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:17px;line-height:1;padding:0;flex-shrink:0">×</button>`;
     list.appendChild(el);
   });
@@ -496,17 +572,88 @@ function renderTasks() {
   } else {
     summary.textContent = '';
   }
+
+  if (taskViewMode === 'timeline') renderTimeline();
+}
+
+function updateAddBtnState() {
+  const addBtn    = document.getElementById('task-add-btn');
+  const cancelBtn = document.getElementById('task-cancel-btn');
+  const recurRow  = document.getElementById('task-recur-row');
+  if (editingIndex !== null) {
+    addBtn.textContent = '✓';
+    addBtn.style.fontSize = '18px';
+    cancelBtn.style.display = 'flex';
+    if (recurRow) recurRow.style.display = 'none';
+  } else {
+    addBtn.textContent = '+';
+    addBtn.style.fontSize = '20px';
+    cancelBtn.style.display = 'none';
+    if (recurRow) recurRow.style.display = '';
+  }
+}
+
+function editTask(i) {
+  const task = dailyTasks[i];
+  document.getElementById('new-task-text').value = task.text;
+  document.getElementById('new-task-time').value = task.start_time || '';
+  document.getElementById('new-task-min').value  = task.duration;
+  editingIndex = i;
+  updateAddBtnState();
+  renderTasks();
+  document.getElementById('new-task-text').focus();
+}
+
+function cancelEdit() {
+  editingIndex = null;
+  document.getElementById('new-task-text').value = '';
+  document.getElementById('new-task-time').value = '';
+  document.getElementById('new-task-min').value  = '30';
+  updateAddBtnState();
+  renderTasks();
 }
 
 function addTask() {
-  const textEl = document.getElementById('new-task-text');
-  const timeEl = document.getElementById('new-task-time');
-  const minEl  = document.getElementById('new-task-min');
+  if (composing) return;
+  const textEl  = document.getElementById('new-task-text');
+  const timeEl  = document.getElementById('new-task-time');
+  const minEl   = document.getElementById('new-task-min');
+  const recurEl = document.getElementById('new-task-recur');
   const text = textEl.value.trim();
   if (!text) return;
-  dailyTasks.push({ text, start_time: timeEl.value || '', duration: parseInt(minEl.value, 10) || 30, done: false });
+
+  if (editingIndex !== null) {
+    dailyTasks[editingIndex] = {
+      ...dailyTasks[editingIndex],
+      text,
+      start_time: timeEl.value || '',
+      duration: parseInt(minEl.value, 10) || 30,
+    };
+    editingIndex = null;
+  } else {
+    const recur = recurEl ? recurEl.value : '';
+    const task = { text, start_time: timeEl.value || '', duration: parseInt(minEl.value, 10) || 30, done: false };
+    if (recur) {
+      const id = 'r_' + Date.now();
+      task.template_id = id;
+      const d = new Date(currentDate + 'T00:00:00');
+      recurringTasks.push({
+        id, text,
+        start_time: task.start_time,
+        duration: task.duration,
+        recur,
+        weekday: d.getDay(),
+        day_of_month: d.getDate(),
+      });
+      saveRecurringTasks();
+    }
+    dailyTasks.push(task);
+  }
+
   textEl.value = '';
   timeEl.value = '';
+  if (recurEl) recurEl.value = '';
+  updateAddBtnState();
   renderTasks();
   saveTasks();
 }
@@ -518,6 +665,7 @@ function toggleTask(i) {
 }
 
 function deleteTask(i) {
+  if (editingIndex === i) { editingIndex = null; updateAddBtnState(); }
   dailyTasks.splice(i, 1);
   renderTasks();
   saveTasks();
@@ -535,6 +683,188 @@ async function saveTasks() {
     setTimeout(() => status.textContent = '', 1500);
   } catch (e) {
     status.textContent = '保存に失敗しました';
+  }
+}
+
+// ── Timeline View ─────────────────────────────────
+function toggleTaskView() {
+  taskViewMode = taskViewMode === 'list' ? 'timeline' : 'list';
+  const btn          = document.getElementById('task-view-btn');
+  const listView     = document.getElementById('task-list-view');
+  const timelineView = document.getElementById('task-timeline-view');
+  if (taskViewMode === 'timeline') {
+    listView.style.display     = 'none';
+    timelineView.style.display = 'block';
+    btn.textContent = '📝 リスト';
+    renderTimeline();
+  } else {
+    listView.style.display     = 'block';
+    timelineView.style.display = 'none';
+    btn.textContent = '📅 タイムライン';
+  }
+}
+
+function findOverlaps(tasks) {
+  const set = new Set();
+  for (let i = 0; i < tasks.length; i++) {
+    for (let j = i + 1; j < tasks.length; j++) {
+      const as = toMins(tasks[i].start_time), ae = as + tasks[i].duration;
+      const bs = toMins(tasks[j].start_time), be = bs + tasks[j].duration;
+      if (as < be && bs < ae) { set.add(i); set.add(j); }
+    }
+  }
+  return set;
+}
+
+function assignLanes(tasks) {
+  const lanes = [];
+  const taskLanes = tasks.map((task) => {
+    const s = toMins(task.start_time), e = s + task.duration;
+    for (let li = 0; ; li++) {
+      if (!lanes[li]) lanes[li] = [];
+      const conflict = lanes[li].some(t => { const ts = toMins(t.start_time); return s < ts + t.duration && ts < e; });
+      if (!conflict) { lanes[li].push(task); return li; }
+    }
+  });
+  return { numLanes: lanes.length, taskLanes };
+}
+
+function renderTimeline() {
+  const container = document.getElementById('task-timeline');
+  const noTime    = document.getElementById('timeline-no-time');
+  const timed   = dailyTasks.filter(t => t.start_time);
+  const untimed = dailyTasks.filter(t => !t.start_time);
+
+  noTime.innerHTML = '';
+  if (untimed.length) {
+    noTime.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">開始時刻なし</div>' +
+      untimed.map(t =>
+        `<div style="font-size:13px;padding:3px 0;color:${t.done ? 'var(--text3)' : 'var(--text)'};${t.done ? 'text-decoration:line-through' : ''}">${escHtml(t.text)} <span style="font-size:11px;color:var(--text3)">(${t.duration}分)</span></div>`
+      ).join('');
+  }
+
+  if (!timed.length) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--text3);text-align:center;padding:20px 0">開始時刻が設定されたタスクがありません</div>';
+    return;
+  }
+
+  let minT = Infinity, maxT = 0;
+  timed.forEach(t => { const s = toMins(t.start_time); minT = Math.min(minT, s); maxT = Math.max(maxT, s + t.duration); });
+
+  const rangeStart = Math.max(0,      Math.floor((minT - 30) / 60) * 60);
+  const rangeEnd   = Math.min(24*60,  Math.ceil((maxT  + 30) / 60) * 60);
+  const totalMins  = rangeEnd - rangeStart;
+
+  const overlapping = findOverlaps(timed);
+  const { numLanes, taskLanes } = assignLanes(timed);
+
+  const LANE_H = 38, HEADER_H = 24;
+  const totalH = HEADER_H + numLanes * LANE_H + 4;
+
+  let html = `<div style="position:relative;overflow-x:auto;border:1px solid var(--border);border-radius:8px;padding:8px 8px 8px 8px">
+    <div style="position:relative;min-width:400px;height:${totalH}px">`;
+
+  for (let t = rangeStart; t <= rangeEnd; t += 60) {
+    const pct = ((t - rangeStart) / totalMins) * 100;
+    const label = String(Math.floor(t / 60)).padStart(2, '0') + ':00';
+    html += `<div style="position:absolute;left:${pct}%;top:${HEADER_H}px;bottom:0;border-left:1px solid var(--border);pointer-events:none"></div>`;
+    html += `<div style="position:absolute;left:${pct}%;top:2px;font-size:10px;color:var(--text3);transform:translateX(-50%);white-space:nowrap">${label}</div>`;
+  }
+
+  timed.forEach((task, i) => {
+    const s   = toMins(task.start_time);
+    const left  = ((s - rangeStart) / totalMins) * 100;
+    const width = Math.max((task.duration / totalMins) * 100, 1.5);
+    const top   = HEADER_H + taskLanes[i] * LANE_H + 2;
+    const bg    = task.done ? 'var(--bg3)' : overlapping.has(i) ? 'var(--coral)' : 'var(--purple)';
+    const color = task.done ? 'var(--text3)' : '#fff';
+    html += `<div style="position:absolute;left:calc(${left}% + 1px);width:calc(${width}% - 2px);top:${top}px;height:${LANE_H - 6}px;background:${bg};border-radius:5px;padding:0 6px;display:flex;align-items:center;overflow:hidden"
+                  title="${escHtml(task.text)}（${task.start_time}〜 ${task.duration}分）">
+               <span style="font-size:11px;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;${task.done ? 'text-decoration:line-through;' : ''}">${escHtml(task.text)}</span>
+             </div>`;
+  });
+
+  html += '</div></div>';
+  if (overlapping.size > 0) {
+    html += '<div style="font-size:11px;color:var(--coral);margin-top:6px">⚠️ 時間が重複しているタスクがあります（赤色で表示）</div>';
+  }
+  container.innerHTML = html;
+}
+
+// ── Recurring Tasks ───────────────────────────────
+async function stampRecurringTasks() {
+  if (!recurringTasks.length || currentDate !== getTodayJST()) return;
+  const d = new Date(currentDate + 'T00:00:00');
+  const weekday = d.getDay(), dayOfMonth = d.getDate();
+  let changed = false;
+
+  for (const tmpl of recurringTasks) {
+    const due = tmpl.recur === 'daily' ||
+      (tmpl.recur === 'weekly'  && tmpl.weekday     === weekday) ||
+      (tmpl.recur === 'monthly' && tmpl.day_of_month === dayOfMonth);
+    if (due && !dailyTasks.some(t => t.template_id === tmpl.id)) {
+      dailyTasks.push({ text: tmpl.text, start_time: tmpl.start_time || '', duration: tmpl.duration || 30, done: false, template_id: tmpl.id });
+      changed = true;
+    }
+  }
+
+  if (changed) { renderTasks(); await saveTasks(); }
+}
+
+function renderRecurringList() {
+  const list = document.getElementById('recurring-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!recurringTasks.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--text3);margin-bottom:4px">繰り返しタスクはありません</div>';
+    return;
+  }
+  recurringTasks.forEach((tmpl, i) => {
+    const recurLabel = RECUR_LABELS[tmpl.recur] || tmpl.recur;
+    const timeStr = tmpl.start_time ? `${tmpl.start_time} / ` : '';
+    list.insertAdjacentHTML('beforeend', `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:7px;margin-bottom:6px;background:var(--bg)">
+        <div style="flex:1">
+          <div style="font-size:13px">${escHtml(tmpl.text)}</div>
+          <div style="font-size:11px;color:var(--text3)">${timeStr}${tmpl.duration}分 · <span style="color:var(--teal)">${recurLabel}</span></div>
+        </div>
+        <button onclick="deleteRecurringTask(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:17px;line-height:1;padding:0">×</button>
+      </div>`);
+  });
+}
+
+function addRecurringTask() {
+  const text = document.getElementById('rec-text').value.trim();
+  if (!text) return;
+  const d = new Date(getTodayJST() + 'T00:00:00');
+  recurringTasks.push({
+    id: 'r_' + Date.now(),
+    text,
+    start_time: document.getElementById('rec-time').value || '',
+    duration: parseInt(document.getElementById('rec-min').value, 10) || 30,
+    recur: document.getElementById('rec-recur').value,
+    weekday: d.getDay(),
+    day_of_month: d.getDate(),
+  });
+  document.getElementById('rec-text').value = '';
+  renderRecurringList();
+  saveRecurringTasks();
+}
+
+function deleteRecurringTask(i) {
+  recurringTasks.splice(i, 1);
+  renderRecurringList();
+  saveRecurringTasks();
+}
+
+async function saveRecurringTasks() {
+  const status = document.getElementById('recurring-status');
+  if (status) status.textContent = '保存中...';
+  try {
+    await api('/settings', { method: 'PUT', body: JSON.stringify({ recurring_tasks: recurringTasks }) });
+    if (status) { status.textContent = '✓ 保存しました'; setTimeout(() => status.textContent = '', 2000); }
+  } catch (e) {
+    if (status) status.textContent = '保存に失敗しました';
   }
 }
 
@@ -582,11 +912,13 @@ function selectMood(mood, el) {
 async function loadCurrentDateData() {
   // Reset UI for the new date before fetching
   selectedMood = '';
+  editingIndex = null;
   document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('feedback-card').style.display = 'none';
   document.getElementById('feedback-loading').style.display = 'none';
   document.getElementById('feedback-empty').style.display = 'block';
   dailyTasks = [];
+  updateAddBtnState();
   renderTasks();
 
   const draft = localStorage.getItem('habits_draft_' + currentDate);
@@ -626,6 +958,7 @@ async function loadCurrentDateData() {
     if (draft) setHabits(JSON.parse(draft));
   }
   dataLoaded = true;
+  await stampRecurringTasks();
 }
 
 // ── Stats Tab ────────────────────────────────────
@@ -645,6 +978,8 @@ async function loadSettings() {
     const data = await api('/settings');
     document.getElementById('cfg-enabled').checked = data.reminder_enabled;
     document.getElementById('cfg-email').value = data.reminder_email;
+    recurringTasks = Array.isArray(data.recurring_tasks) ? data.recurring_tasks : [];
+    renderRecurringList();
   } catch (e) { /* silent */ }
 }
 
