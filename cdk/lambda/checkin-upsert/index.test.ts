@@ -4,7 +4,6 @@ import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { handler } from './index';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
-
 beforeEach(() => ddbMock.reset());
 
 function makeEvent(body: object) {
@@ -14,35 +13,34 @@ function makeEvent(body: object) {
   } as any;
 }
 
-test('returns 200 and updates record with required fields', async () => {
+test('returns 200 and updates only the specified fields', async () => {
   ddbMock.on(UpdateCommand).resolves({});
 
   const result = await handler(makeEvent({
-    date: '2026-06-11',
-    habits: { logical: true, critical: false, reading: true, ai: true, blog: false, weekly_reflection: false },
+    date: '2026-06-22',
+    habits: { logical: true },
+    today_done: 'done stuff',
   }), {} as any, {} as any) as any;
 
   expect(result.statusCode).toBe(200);
   expect(JSON.parse(result.body)).toEqual({ ok: true });
   expect(ddbMock).toHaveReceivedCommandWith(UpdateCommand, {
-    Key: { userId: 'user-123', date: '2026-06-11' },
+    Key: { userId: 'user-123', date: '2026-06-22' },
+    ExpressionAttributeValues: expect.objectContaining({
+      ':habits': { logical: true },
+      ':done': 'done stuff',
+    }),
   });
 });
 
-test('defaults optional fields to empty when omitted', async () => {
+test('only updates daily_tasks when only tasks are sent', async () => {
   ddbMock.on(UpdateCommand).resolves({});
+  const tasks = [{ text: 'タスク1', duration: 30, done: false }];
 
-  await handler(makeEvent({ date: '2026-06-11', habits: {} }), {} as any, {} as any);
+  await handler(makeEvent({ date: '2026-06-22', daily_tasks: tasks }), {} as any, {} as any);
 
-  expect(ddbMock).toHaveReceivedCommandWith(UpdateCommand, {
-    ExpressionAttributeValues: expect.objectContaining({
-      ':done': '',
-      ':tomorrow': '',
-      ':blog': 0,
-      ':insights': '',
-      ':mood': '',
-      ':obstacles': '',
-      ':morning': '',
-    }),
-  });
+  const values = ddbMock.commandCalls(UpdateCommand)[0].args[0].input.ExpressionAttributeValues!;
+  expect(values[':tasks']).toEqual(tasks);
+  expect(values[':habits']).toBeUndefined();
+  expect(values[':done']).toBeUndefined();
 });
