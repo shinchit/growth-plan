@@ -622,17 +622,14 @@ function renderTasks() {
 function updateAddBtnState() {
   const addBtn    = document.getElementById('task-add-btn');
   const cancelBtn = document.getElementById('task-cancel-btn');
-  const recurRow  = document.getElementById('task-recur-row');
   if (editingIndex !== null) {
     addBtn.textContent = '✓';
     addBtn.style.fontSize = '18px';
     cancelBtn.style.display = 'flex';
-    if (recurRow) recurRow.style.display = 'none';
   } else {
     addBtn.textContent = '+';
     addBtn.style.fontSize = '20px';
     cancelBtn.style.display = 'none';
-    if (recurRow) recurRow.style.display = '';
   }
 }
 
@@ -652,6 +649,8 @@ function cancelEdit() {
   document.getElementById('new-task-text').value = '';
   document.getElementById('new-task-time').value = '';
   document.getElementById('new-task-min').value  = '30';
+  const recurEl = document.getElementById('new-task-recur');
+  if (recurEl) recurEl.value = '';
   updateAddBtnState();
   renderTasks();
 }
@@ -666,12 +665,28 @@ function addTask() {
   if (!text) return;
 
   if (editingIndex !== null) {
-    dailyTasks[editingIndex] = {
+    const recur = recurEl ? recurEl.value : '';
+    const updated = {
       ...dailyTasks[editingIndex],
       text,
       start_time: timeEl.value || '',
       duration: parseInt(minEl.value, 10) || 30,
     };
+    if (recur) {
+      const id = 'r_' + Date.now();
+      updated.template_id = id;
+      const d = new Date(currentDate + 'T00:00:00');
+      recurringTasks.push({
+        id, text,
+        start_time: updated.start_time,
+        duration: updated.duration,
+        recur,
+        weekday: d.getDay(),
+        day_of_month: d.getDate(),
+      });
+      saveRecurringTasks();
+    }
+    dailyTasks[editingIndex] = updated;
     editingIndex = null;
   } else {
     const recur = recurEl ? recurEl.value : '';
