@@ -529,8 +529,9 @@ async function autoSave() {
 let dailyTasks = [];
 
 function prevDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  d.setDate(d.getDate() - 1);
+  // Parse as UTC midnight to avoid JST→UTC shift corrupting the date
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().slice(0, 10);
 }
 
